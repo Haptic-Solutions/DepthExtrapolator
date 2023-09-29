@@ -1,0 +1,26 @@
+/// Camera paramters.
+
+4.75" / 120.65mm spacing between images.
+
+Sensor 23.5 mm x 15.6 mm
+
+Resolution 6K X 4K
+
+Lens 18mm
+
+Images 43 and 44 seem to be the best.
+
+
+/// Constraints.
+
+float C_Dist = 12.065;    //120.65mm
+float min_Dist = 10;      //10cm
+float max_Dist = 10000;   //100 meters
+
+/// Equations.
+Rad = Deg * ?/180
+Deg = Rad * 180/?
+
+O=14.28
+A=14.0029
+H=20

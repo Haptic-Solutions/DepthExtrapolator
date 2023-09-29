@@ -1,0 +1,39 @@
+//for(int Tx=LLX;Tx<x+Pix_End;Tx++){
+            for(int Tx=x+Pix_End;Tx>LLX;Tx--){
+                if(Tx>width)break;  //Catch to keep from seg-faulting. Should never need this.
+                if(edgeOutRIGHT[cord(Tx,y)]&&Tx!=(width/2)){
+                    //Found a Right-View edge, now compare colors and find the closest match.
+                    int PX_Match=0;
+                    ///Test 3x3 square of pixels.
+                    for(int Yadj=-1;Yadj<=1;Yadj++){
+                        for(int Xadj=-1;Xadj<=1;Xadj++){
+                            //Cull out of range pointers to keep from seg-faulting.
+                            int ay=y+Yadj;
+                            if(ay<0)ay=0;
+                            if(ay>height-1)ay=height-1;
+                            int aTx=Tx+Xadj;
+                            if(aTx<0)aTx=0;
+                            int ax=x+Xadj;
+                            if(ax>width-1)ax=width-1;
+                            //Done culling pointers, test colors.
+                            for(int c=0; c<=2; c++){
+                                int C_Test = O_channelsLEFT[cord(ax,ay)].chnls[c] - O_channelsRIGHT[cord(aTx,ay)].chnls[c];
+                                if(C_Test<0)C_Test*=-1; //Get absolute value of difference.
+                                ///Ignore if out of range and skip to next pixel.
+                                if(C_Test>MaxColorDiff){
+                                    PX_Match=-1;    //Mark it to skip, then break from loop.
+                                    break;
+                                }
+                                PX_Match+=C_Test;   ///Add the differences.
+                            }
+                            if(PX_Match<0)break;
+                        }
+                        if(PX_Match<0)break;
+                    }
+                    if(PX_Match<lowest_Diff&&PX_Match!=-1){
+                        lowest_Diff=PX_Match;
+                        lowest_Tx=Tx;
+                    }
+                    else if(PX_Match<0)lowest_Tx=-1;  //Mark as a match not found and to ignore this point.
+                }
+            }

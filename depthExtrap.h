@@ -10,31 +10,31 @@
 #define Z 2
 #define CordX 0
 #define CordY 1
-#define Xsq_wdth 1
-#define Ysq_wdth 1
 #define scan_debug 749
 
-int threashold = 5;    ///Larger numbers == less sensitive.
-//int pixDiff = 20;      ///Smaller numbers == closer match.
-int MaxColorDiff = 100;    ///Smaller numbers == closer match.
-int centerWeight = 1;   ///Larger numbers has greater effect.
+int Xsq_wdth = 2;
+int Ysq_wdth = 2;
+int threashold = 10;    ///Larger numbers == less sensitive.
+int MaxColorDiff = 10;    ///Smaller numbers == closer match.
 
 ///Distance is in mm.
 ///Angles are in Radians.
-double Cam_Dist = 120.65;    //120.65mm
-double min_Dist = 500;      //0.50 meters
-double max_Dist = 30000;   //30 meters
+double Cam_Dist = 120.65;    //120.65mm 228.6mm
+double min_Dist = 500;      //0.50 meters: adjacent angle.
+double max_Dist = 10000;   //10 meters: opposite angle.
 double X_FOV = 0;          //Leave as 0 if unknown.
 double Y_FOV = 0;          //Leave as 0 if unknown.
-double lens_f = 18;        //test parameter. NIKON D3300 with 18-140mm lens.
+double lens_foc = 18;        //test parameter. NIKON D3300 with 18-140mm lens.
 double X_Size = 23.5;      //test parameter. NIKON D3300 with 18-140mm lens.
 double Y_Size = 15.6;      //test parameter. NIKON D3300 with 18-140mm lens.
 
 unsigned int width, height;
 unsigned char * edgeOutLEFT;
 unsigned char * edgeOutRIGHT;
-unsigned char * edgeMatchLEFT;
-unsigned char * edgeMatchRIGHT;
+unsigned char * reduxOutLEFT;
+unsigned char * reduxOutRIGHT;
+unsigned char * reduxMatchLEFT;
+unsigned char * reduxMatchRIGHT;
 unsigned char * pixelTMP;
 double * Sets;
 double * X_Angle;
