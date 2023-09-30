@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     F_i=i;  //Convert to floating point number.
     double pixRatio = F_i/F_width;
     double X_Num = ((X_Size*pixRatio)-(X_Size/2))/2; ///Get scan offset of each pixel with 0 in the middle.
-    //double foc_length = sqrt(pow(lens_foc,2)+pow(X_Num,2));    ///Get focal length of each pixel correct for non-spherical lens.
+    //double foc_length = sqrt(pow(lens_foc,2)+pow(X_Num,2));    ///Get focal length of each pixel correct for spherical lens.
     X_Angle[i] = DegToRad(90)+atan(X_Num/(lens_foc/2));     ///Get view angle of each pixel shifted so center is 90deg.
     X_FOV = atan(X_Size/(lens_foc/2)); ///Get absolute FOV.
   }
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     F_i=i;  //Convert to floating point number.
     double pixRatio = F_i/F_height;
     double Y_Num = ((Y_Size*pixRatio)-(Y_Size/2))/2; ///Get scan offset of each pixel with 0 in the middle.
-    //double foc_length = sqrt(pow(lens_foc,2)+pow(Y_Num,2));    ///Get focal length of each pixel correct for non-spherical lens.
+    //double foc_length = sqrt(pow(lens_foc,2)+pow(Y_Num,2));    ///Get focal length of each pixel correct for spherical lens.
     Y_Angle[i] = DegToRad(90)+atan(Y_Num/(lens_foc/2));     ///Get view angle of each pixel shifted so center is 90deg.
     Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
   }
@@ -245,6 +245,7 @@ int main(int argc, char *argv[]) {
             reduxOutRIGHT[cord(x,y)] |= (O_channelsRIGHT[cord(x,y)].chnls[B]>>6)&0x03;
         }
     }
+  cout << "Generating edge/color reduction diag output. \n";
   pngmake(1, width, height, 0, 0); ///Make test frame of the edge detection.
   pngmake(2, width, height, 0, 1); ///Make test frame of the edge detection.
   cout << "Left RGB Edges Found " << L_Edge_Cnt << "\n";

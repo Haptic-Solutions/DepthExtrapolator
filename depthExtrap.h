@@ -12,16 +12,16 @@
 #define CordY 1
 #define scan_debug 749
 
-int Xsq_wdth = 2;
-int Ysq_wdth = 2;
-int threashold = 10;    ///Larger numbers == less sensitive.
-int MaxColorDiff = 10;    ///Smaller numbers == closer match.
+int Xsq_wdth = 3;
+int Ysq_wdth = 3;
+int threashold = 20;    ///Larger numbers == less sensitive.
+int MaxColorDiff = 25;    ///Smaller numbers == closer match.
 
 ///Distance is in mm.
 ///Angles are in Radians.
 double Cam_Dist = 120.65;    //120.65mm 228.6mm
-double min_Dist = 500;      //0.50 meters: adjacent angle.
-double max_Dist = 10000;   //10 meters: opposite angle.
+double min_Dist = 200;      //0.50 meters: adjacent angle.
+double max_Dist = 2000;   //10 meters: opposite angle.
 double X_FOV = 0;          //Leave as 0 if unknown.
 double Y_FOV = 0;          //Leave as 0 if unknown.
 double lens_foc = 18;        //test parameter. NIKON D3300 with 18-140mm lens.
