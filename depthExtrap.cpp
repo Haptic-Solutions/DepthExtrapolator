@@ -42,48 +42,51 @@ int main(int argc, char *argv[]) {
   double F_height = height;  //Convert to floating point number.
   double F_i;
 ///Pre-calculate all XY angles into two arrays.
-//Need Image resolution, and XY FOV or Sensor size + Lens focal length.
+// Need Image resolution, and XY FOV or Sensor size + Lens focal length.
 // FOV = 2 arctan(sensorSize/(2f))
     ///X angle.
-  for(int i = 0;i<width;i++){
+  for(int i=0;i<width;i++){
     F_i=i;  //Convert to floating point number.
-    double pixRatio = F_i/F_width;
-    double X_Num = ((X_Size*pixRatio)-(X_Size/2))/2; ///Get scan offset of each pixel with 0 in the middle.
-    //double foc_length = sqrt(pow(lens_foc,2)+pow(X_Num,2));    ///Get focal length of each pixel correct for spherical lens.
-    X_Angle[i] = DegToRad(90)+atan(X_Num/(lens_foc/2));     ///Get view angle of each pixel shifted so center is 90deg.
-    X_FOV = atan(X_Size/(lens_foc/2)); ///Get absolute FOV.
+    double X_Num = X_Size*((F_i/F_width)-0.5); ///Get scan offset of each pixel with 0 in the middle.
+    double foc_length = sqrt(pow(lens_foc,2)+pow(X_Num,2));    ///Get focal length of each pixel correct for spherical lens.
+    if(!spherical_Lens)foc_length = lens_foc;
+    X_Angle[i] = DegToRad(90)+atan(X_Num/foc_length);     ///Get view angle of each pixel shifted so center is 90deg.
+    X_FOV = X_Angle[width-1]-X_Angle[0]; ///Get absolute FOV.
+    //X_FOV = atan(X_Size/(lens_foc/2)); ///Get absolute FOV.
   }
     ///Y angle.
-  for(int i = 0;i<height;i++){
+  for(int i=0;i<height;i++){
     F_i=i;  //Convert to floating point number.
-    double pixRatio = F_i/F_height;
-    double Y_Num = ((Y_Size*pixRatio)-(Y_Size/2))/2; ///Get scan offset of each pixel with 0 in the middle.
-    //double foc_length = sqrt(pow(lens_foc,2)+pow(Y_Num,2));    ///Get focal length of each pixel correct for spherical lens.
-    Y_Angle[i] = DegToRad(90)+atan(Y_Num/(lens_foc/2));     ///Get view angle of each pixel shifted so center is 90deg.
-    Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
+    double Y_Num = Y_Size*((F_i/F_height)-0.5); ///Get scan offset of each pixel with 0 in the middle.
+    double foc_length = sqrt(pow(lens_foc,2)+pow(Y_Num,2));    ///Get focal length of each pixel correct for spherical lens.
+    if(!spherical_Lens)foc_length = lens_foc;
+    Y_Angle[i] = DegToRad(90)+atan(Y_Num/foc_length);     ///Get view angle of each pixel shifted so center is 90deg.
+    Y_FOV = Y_Angle[height-1]-Y_Angle[0]; ///Get absolute FOV.
+    //Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
   }
 
-
-  cout << "First angle " << RadToDeg(X_Angle[0]) << "\n";
-  cout << "Middle angle " << RadToDeg(X_Angle[(width/2)-1]) << "\n";
-  cout << "Middle angle " << RadToDeg(X_Angle[width/2]) << "\n";
-  cout << "Middle angle " << RadToDeg(X_Angle[(width/2)+1]) << "\n";
-  cout << "Last angle " << RadToDeg(X_Angle[width-1]) << "\n\n";
-  cout << "Camera Lens Focal Length " << lens_foc << "mm\n";
-  cout << "Camera Horizontal Sensor Size " << X_Size << "mm\n";
-  cout << "Camera Vertical Sensor Size " << Y_Size << "mm\n";
-  cout << "Camera Horizontal Resolution " << width << "\n";
-  cout << "Camera Vertical Resolution " << height << "\n";
-  cout << "Camera Horizontal FOV " << RadToDeg(X_FOV) << " deg\n";
-  cout << "Camera Vertical FOV " << RadToDeg(Y_FOV) << " deg\n";
+  cout << "First angle ------ " << RadToDeg(X_Angle[0]) << "\n";
+  cout << "Middle angle -1pix " << RadToDeg(X_Angle[(width/2)-1]) << "\n";
+  cout << "Middle angle ----- " << RadToDeg(X_Angle[width/2]) << "\n";
+  cout << "Middle angle +1pix " << RadToDeg(X_Angle[(width/2)+1]) << "\n";
+  cout << "Last angle ------- " << RadToDeg(X_Angle[width-1]) << "\n";
+  cout << "-------------------\n";
+  cout << "Sensor angle range:: " << RadToDeg(X_FOV) << "\n\n";
+  cout << "Camera Lens Focal Length:: " << lens_foc << "mm\n";
+  cout << "Camera Horizontal Sensor Size:: " << X_Size << "mm\n";
+  cout << "Camera Vertical Sensor Size:: " << Y_Size << "mm\n";
+  cout << "Camera Horizontal Resolution:: " << width << "\n";
+  cout << "Camera Vertical Resolution:: " << height << "\n";
+  cout << "Camera Horizontal FOV:: " << RadToDeg(X_FOV) << " deg\n";
+  cout << "Camera Vertical FOV:: " << RadToDeg(Y_FOV) << " deg\n";
 
   ///Pre-Calculate min/max scanning angles based on min/max configured distances.
   //This is done assuming a right triangle with the opposite side in the center between both cameras.
-  double Min_Dist_Ang = atan(min_Dist/(Cam_Dist/2));
-  double Max_Dist_Ang = atan(max_Dist/(Cam_Dist/2));
+  double Min_Dist_Ang = atan(min_Dist/Cam_Dist);
+  double Max_Dist_Ang = atan(max_Dist/Cam_Dist);
 
-  cout << "Min_Dist_Ang " << RadToDeg(Min_Dist_Ang) << " deg\n";
-  cout << "Max_Dist_Ang " << RadToDeg(Max_Dist_Ang) << " deg\n";
+  cout << "Min_Dist_Ang:: " << RadToDeg(Min_Dist_Ang) << " deg\n";
+  cout << "Max_Dist_Ang:: " << RadToDeg(Max_Dist_Ang) << " deg\n";
 
   ///Pre-Convert Min/Mix angles to left/right max pixels to scan.
   int Pix_Start=0;
@@ -102,8 +105,8 @@ int main(int argc, char *argv[]) {
         break;
     }
   }
-  cout << "Pre-Pix_Start " << Pix_Start << " pix\n";
-  cout << "Pre-Pix_End " << Pix_End << " pix\n";
+  cout << "Pre-Pix_Start:: " << Pix_Start << " pix\n";
+  cout << "Pre-Pix_End:: " << Pix_End << " pix\n";
   int Pix_Diff = Pix_End-Pix_Start;     //Scan Width.
   ///Scale start/end by two.
   //Pix_Start += Pix_Diff/4;      //Shift Start.
@@ -114,10 +117,10 @@ int main(int argc, char *argv[]) {
   Pix_End -= (width/2);        //Shift End.
 
 
-  cout << "Pix_Start " << Pix_Start << " pix\n";
-  cout << "Pix_End " << Pix_End << " pix\n";
-  cout << "Pix_Width " << Pix_Diff << " pix\n";
-  cout << "Pix_LeftCam_Start " << Pix_LeftCam_Start << " pix\n";
+  cout << "Pix_Start:: " << Pix_Start << " pix\n";
+  cout << "Pix_End:: " << Pix_End << " pix\n";
+  cout << "Pix_Width:: " << Pix_Diff << " pix\n";
+  cout << "Pix_LeftCam_Start:: " << Pix_LeftCam_Start << " pix\n";
 
   /// Split the color channels to make them easier to understand the process.
   C_chSplit* O_channelsLEFT;
@@ -248,15 +251,18 @@ int main(int argc, char *argv[]) {
   cout << "Generating edge/color reduction diag output. \n";
   pngmake(1, width, height, 0, 0); ///Make test frame of the edge detection.
   pngmake(2, width, height, 0, 1); ///Make test frame of the edge detection.
-  cout << "Left RGB Edges Found " << L_Edge_Cnt << "\n";
-  cout << "Right RGB Edges Found " << R_Edge_Cnt << "\n";
+  cout << "Left RGB Edges Found:: " << L_Edge_Cnt << "\n";
+  cout << "Right RGB Edges Found:: " << R_Edge_Cnt << "\n";
   ///Do edge matching per line using color data to match points between Left and Right views.
-  cout << "Doing edge matching between channels, and calculating distances of points. \n";
+  cout << "Doing points matching between channels. \n";
+  C_bMatch* O_bestMatch;
+  O_bestMatch = new C_bMatch [width];
   int match_count = 0;
   int match_used = 0;
+  int better_matches = 0;
+  int matches_discarded = 0;
   int T_Edge_Cnt = 0;
   int final_multi_point=0;
-  int edge_OOR = 0;
   double scale_dist = max_Dist / min_Dist;
   for(int y=Ysq_wdth;y<height-Ysq_wdth;y++){
     for(int x=Pix_LeftCam_Start;x<width-Xsq_wdth;x++){
@@ -280,83 +286,82 @@ int main(int argc, char *argv[]) {
                 if(reduxOutLEFT[cord(x,y)]==reduxOutRIGHT[cord(Tx,y)]&&Tx!=(width/2)){
                     //Found a Right-View edge, now compare colors and find the closest match.
                     ///Test square of pixels.
-                    int PX_Match=0;
-                    int PX_OOR=0;
-                    for(int Yadj=-Ysq_wdth;Yadj<=Ysq_wdth;Yadj++){
-                        for(int Xadj=-Xsq_wdth;Xadj<=Xsq_wdth;Xadj++){
-                            for(int c=0; c<=2; c++){
-                                int C_Test = O_channelsLEFT[cord(x+Xadj,y+Yadj)].chnls[c] - O_channelsRIGHT[cord(Tx+Xadj,y+Yadj)].chnls[c];
-                                if(C_Test<0)C_Test*=-1; //Get absolute value of difference.
-                                ///Cull if center pixel is out of range and skip to next pixel.
-                                if(C_Test>MaxColorDiff){
-                                    PX_OOR=1;    //Mark it to skip, then break from loop.
-                                    edge_OOR++;
-                                    break;
-                                }
-                                else PX_Match+=C_Test;   ///Add the differences. We want to use what is the lowest difference.
-                            }
-                            if(PX_OOR)break;    //Break from marked bad matches and check next line for any.
-                        }
-                        if(PX_OOR)break;    //Break from marked bad matches and check next line for any.
-                    }
-                    if(PX_Match<lowest_Diff&&!PX_OOR){
+                    int PX_Match = gridComp(x,Tx,y,O_channelsLEFT,O_channelsRIGHT);    ///Get best match.
+                    if(PX_Match<lowest_Diff&&PX_Match>=0){
                         lowest_Diff=PX_Match;
                         lowest_Tx=Tx;
                         multi_point=0;
                     }
-                    else if(PX_Match==lowest_Diff&&!PX_OOR){
+                    else if(PX_Match==lowest_Diff&&PX_Match>=0){
                         multi_point++;  //Mark if multiple matches and cull them out for now.
-                        final_multi_point++;
+                        final_multi_point++;    //debug counter.
+                        reduxOutRIGHT[cord(lowest_Tx,y)]=255;   ///Also delete it. If it's the same for this one then it's redundant to keep testing them.
                     }
                 }
             }
             if(lowest_Diff<10000 && multi_point<1){
-                ///Found a point match. Now compute Z distance.
-                //Write debug images.
-                if(x==scan_debug){
-                    reduxMatchLEFT[cord(x,y)]=1;
-                    reduxMatchRIGHT[cord(lowest_Tx,y)]=1;
-                }
+                /// Mark potential matches.
                 match_count++;
-                ///Mark this point so that it's not used again. We don't need it anymore.
-                reduxOutRIGHT[cord(lowest_Tx,y)]=255;
-                // We know that Z=0 for the first left and right points and that X=+-C_Dist/2
-                // Get slopes of rays.
-                double LSlp = tan(X_Angle[x]);
-                double RSlp = tan(X_Angle[lowest_Tx]);
-                double YSlp = tan(Y_Angle[y]);  //Might as well compute the Y axis while we are here.
-                // Get second set of points via the X=0 Z intercept
-                double LShft = (Cam_Dist/2)*LSlp;
-                double RShft = (Cam_Dist/-2)*RSlp;
-                /// Now the linear equation for each ray is Z=iSlp*X+iShft where 'i' is either L or R
-                /// RSlp*X+RShft=LSlp*X+LShft
-                // We can subtract the Right view slope from the Left view slop
-                LSlp = LSlp-RSlp;
-                /// Not it's RShft=LSlp*X+LShft
-                /// Rearrange that to get the X cord of the intercept.
-                /// RShft-LShft=LSlp*X
-                /// (RShft-LShft)/LSlp=X
-                double IX=(RShft-LShft)/LSlp;
-                /// Now solve for Z using the right-side equation parameters because they haven't been modified.
-                double tmpZ = (RSlp*IX)+RShft;
-                /// Now scale Y and put all the cords into memory.
-                // Cull obvious errors cause by faulty code.
-                match_used++;
-                O_Points[cord(x,y)].Cord[X]=IX/1000;
-                O_Points[cord(x,y)].Cord[Y]=(tmpZ/YSlp)/1000;
-                O_Points[cord(x,y)].Cord[Z]=tmpZ/1000;
-                /// And now we have the Z distance of each point.
+                O_bestMatch[x].matchWith = lowest_Tx;
+                O_bestMatch[x].pixScore = lowest_Diff;
             }
         }
     }
+    /// Check for better matches than what we already found.
+    for(int x=0;x<width;x++){
+        int Gx=O_bestMatch[x].matchWith;
+        int Gscore=O_bestMatch[x].pixScore;
+        for(int xTest=x+1;xTest<width;xTest++){
+            ///Find two left pixels that are matching with the same right pixel, and find the better match.
+            int Hx=O_bestMatch[xTest].matchWith;
+            int Hscore=O_bestMatch[xTest].pixScore;
+            if(Gx>0 && Hx>0 && Gx==Hx){
+                ///Find which one has the lower(better) score and remove the other one.
+                if(Gscore<Hscore){
+                        ///Remove Hscore
+                    O_bestMatch[xTest].matchWith = 0;
+                    O_bestMatch[xTest].pixScore = -1;
+                    better_matches++;
+                }
+                else if(Gscore>Hscore){
+                        ///Remove Gscore
+                    O_bestMatch[x].matchWith = 0;
+                    O_bestMatch[x].pixScore = -1;
+                    better_matches++;
+                }
+                /// If scores are equal then remove both as we don't know which one is the correct match.
+                else {
+                    O_bestMatch[x].matchWith = 0;
+                    O_bestMatch[x].pixScore = -1;
+                    O_bestMatch[xTest].matchWith = 0;
+                    O_bestMatch[xTest].pixScore = -1;
+                    matches_discarded++;
+                }
+            }
+        }
+    }
+    ///Use remaining points to calculate distances.
+    for(int x=0;x<width;x++){
+        int RightX=O_bestMatch[x].matchWith;
+        if(RightX>0){
+            match_used++;
+            ///We got points, now calculate where they are actually at.
+            calcPoint(x, RightX, y, O_Points);
+        }
+        ///Clear it after it's been used.
+        O_bestMatch[x].matchWith = 0;
+        O_bestMatch[x].pixScore = -1;
+    }
   }
-  pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
-  pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
-  cout << "Edges Compared " << T_Edge_Cnt << "\n";
-  cout << "Edge Colors Out Of Range " << edge_OOR << "\n";
-  cout << "Duplicate points found and not using " << final_multi_point << "\n";
-  cout << "Found " << match_count << " points to match. Done calculating their distances. \n";
-  cout << "Using " << match_used << " points for output.\n";
+  cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
+  cout << "Duplicate points found and not using:: " << final_multi_point << "\n";
+  cout << "Number of Total Points Found:: " << match_count << "\n";
+  cout << "Better Matches Found and Reallocated:: " << better_matches << "\n";
+  cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
+  cout << "Points to be used for output:: " << match_used << "\n";
+  //cout << "Writing edge-match debug files. \n";
+  //pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
+  //pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
   ofstream Pfile;
@@ -406,7 +411,7 @@ void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
     //create a new array that's the appropriate size for our resolution. No alpha channel.
     rgbimage = new unsigned char [(res*3)];
     //Copy the RGB data over to an array suitable for the PNG conversion library.
-    for(int d=0;d<res;d++){
+    for(int d=0;d<res-1;d++){
         int pixel=0;
         if(!type&&!channel){
             rgbimage[i] = ((reduxOutLEFT[d]&0x30)<<2)*edgeOutLEFT[d];
@@ -465,4 +470,54 @@ void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
     lodepng_encode24_file(fileNumber.str().c_str(), rgbimage, xRes, yRes);
     //cleanup
     delete[] rgbimage;
+}
+
+
+int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
+    int PX_Match=0;
+    for(int Yadj=-Ysq_wdth;Yadj<=Ysq_wdth;Yadj++){
+        for(int Xadj=-Xsq_wdth;Xadj<=Xsq_wdth;Xadj++){
+            for(int c=0; c<=2; c++){
+                int Diff_Test = LEFTc[cord(x+Xadj,y+Yadj)].chnls[c] - RIGHTc[cord(Tx+Xadj,y+Yadj)].chnls[c];
+                if(Diff_Test<0)Diff_Test*=-1; //Get absolute value of difference.
+                ///Cull if center pixel is out of range and skip to next pixel.
+                if(Diff_Test>MaxColorDiff){
+                    PX_Match=-1;    //Mark it to skip, then break from loop.
+                    break;
+                }
+                else PX_Match+=Diff_Test;   ///Add the differences. We want to use what is the lowest difference.
+            }
+            if(PX_Match<0)break;    //Break from marked bad matches and check next line for any.
+        }
+        if(PX_Match<0)break;    //Break from marked bad matches and check next line for any.
+    }
+    return PX_Match;
+}
+
+void calcPoint(int x, int Tx, int y, C_Points * O_Points){
+    ///Found a point match. Now compute Z distance.
+    /// We know that Z=0 for the first left and right points and that X=+-C_Dist/2
+    /// Get slopes of rays using pre-computed angle data.
+    double LSlp = tan(X_Angle[x]);          ///Get angle data for the left view.
+    double RSlp = tan(X_Angle[Tx]);  ///Get angle data for the right view.
+    double YSlp = tan(Y_Angle[y]);  ///Might as well compute the Y axis while we are here.
+    /// Get second set of points via the X=0 Z intercept
+    double LShft = (Cam_Dist/2)*LSlp;       ///Calculate the Z intercept for left view.
+    double RShft = (Cam_Dist/-2)*RSlp;      ///Calculate the Z intercept for right view.
+    /// Now the linear equation for each ray is Z=iSlp*X+iShft where 'i' is either L or R
+    /// RSlp*X+RShft=LSlp*X+LShft
+    /// We can subtract the Right view slope from both equations leaving X only on the Left equation.
+    LSlp = LSlp-RSlp;
+    /// Now it's RShft=LSlp*X+LShft
+    /// Rearrange that to get the X cord of the intercept.
+    /// RShft-LShft=LSlp*X
+    /// (RShft-LShft)/LSlp=X
+    double IX=(RShft-LShft)/LSlp;
+    /// Now solve for Z using the right-side equation parameters because they haven't been modified.
+    double tmpZ=(RSlp*IX)+RShft;
+    /// Now scale Y using the Z data and put all the coords into memory.
+    O_Points[cord(x,y)].Cord[X]=IX/1000;
+    O_Points[cord(x,y)].Cord[Y]=(tmpZ/YSlp)/1000;
+    O_Points[cord(x,y)].Cord[Z]=tmpZ/1000;
+    /// And now we have the Z distance of each point.
 }

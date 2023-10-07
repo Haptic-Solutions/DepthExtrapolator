@@ -12,19 +12,20 @@
 #define CordY 1
 #define scan_debug 749
 
+bool spherical_Lens = 0;
 int Xsq_wdth = 3;
 int Ysq_wdth = 3;
-int threashold = 20;    ///Larger numbers == less sensitive.
+int threashold = 20;      ///Larger numbers == less sensitive.
 int MaxColorDiff = 25;    ///Smaller numbers == closer match.
 
 ///Distance is in mm.
 ///Angles are in Radians.
-double Cam_Dist = 120.65;    //120.65mm 228.6mm
-double min_Dist = 200;      //0.50 meters: adjacent angle.
-double max_Dist = 2000;   //10 meters: opposite angle.
-double X_FOV = 0;          //Leave as 0 if unknown.
-double Y_FOV = 0;          //Leave as 0 if unknown.
-double lens_foc = 18;        //test parameter. NIKON D3300 with 18-140mm lens.
+double Cam_Dist = 50.8;  //50.8 :: 120.65mm + 114.3 ??= 234.95 :: other images 228.6mm
+double min_Dist = 200;     //0.20 meters: adjacent angle.
+double max_Dist = 6000;    //2 meters: opposite angle.
+double X_FOV = 0;
+double Y_FOV = 0;
+double lens_foc = 18;      //test parameter. NIKON D3300 with 18-140mm lens.
 double X_Size = 23.5;      //test parameter. NIKON D3300 with 18-140mm lens.
 double Y_Size = 15.6;      //test parameter. NIKON D3300 with 18-140mm lens.
 
@@ -47,6 +48,17 @@ double RadToDeg(double);
 void pngmake(int, int, int, int, int);
 
 
+class C_bMatch{
+public:
+    int pixScore;
+    int matchWith;
+    /** Memory constructor **/
+    C_bMatch(void){
+        pixScore = -1;
+        matchWith = 0;
+    }
+};
+
 class C_chSplit{
 public:
     unsigned int * chnls;
@@ -61,6 +73,8 @@ public:
         delete[] chnls;
     }
 };
+
+int gridComp(int, int, int, C_chSplit*, C_chSplit*);
 
 class C_pTable{
 public:
@@ -78,10 +92,10 @@ public:
 
 class C_Points{
 public:
-    float * Cord;
+    double * Cord;
     /** Memory constructor **/
     C_Points(void){
-        Cord = new float [3];
+        Cord = new double [3];
         Cord[0]=0;
         Cord[1]=0;
         Cord[2]=0;
@@ -90,6 +104,8 @@ public:
         delete[] Cord;
     }
 };
+
+void calcPoint(int, int, int, C_Points*);
 
 const char *PLYheader_Start[]{
 "ply\n"

@@ -1,14 +1,12 @@
 /// Camera paramters.
 
-4.75" / 120.65mm spacing between images.
+2" / 50.8mm spacing between images.
 
 Sensor 23.5 mm x 15.6 mm
 
-Resolution 6K X 4K
+Resolution 3K X 2K
 
 Lens 18mm
-
-Images 43 and 44 seem to be the best.
 
 
 /// Constraints.
