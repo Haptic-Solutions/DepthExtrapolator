@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
   for(int i=0;i<(width*height);i++)reduxOutRIGHT[i]=0;    //Initialize reduxOutRIGHT
   for(int i=0;i<(width*height);i++)reduxMatchLEFT[i]=0;    //Initialize reduxOutLEFT
   for(int i=0;i<(width*height);i++)reduxMatchRIGHT[i]=0;    //Initialize reduxOutRIGHT
-  /// Convert to lower color depth. 64 colors.
+  /// Do horizontal and vertical edge detection.
   int L_Edge_Cnt=0;
   int R_Edge_Cnt=0;
   ///Horizontal
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
   for(int c=0;c<3;c++){
     for(int y=0;y<height;y++){
         int color_old = 0;
-        for(int x=0;x<width;x++){
+        for(int x=0;x<width;x+=edgePixSkp){
             int color_diff = color_old - O_channelsLEFT[cord(x,y)].chnls[c];
             if(color_diff<0)color_diff*=-1;
             if(color_diff>threashold){
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
   for(int c=0;c<3;c++){
     for(int x=0;x<width;x++){
         int color_old = 0;
-        for(int y=0;y<height;y++){
+        for(int y=0;y<height;y+=edgePixSkp){
             int color_diff = color_old - O_channelsLEFT[cord(x,y)].chnls[c];
             if(color_diff<0)color_diff*=-1;
             if(color_diff>threashold){
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
   for(int c=0;c<3;c++){
     for(int y=0;y<height;y++){
         int color_old = 0;
-        for(int x=0;x<width;x++){
+        for(int x=0;x<width;x+=edgePixSkp){
             int color_diff = color_old - O_channelsRIGHT[cord(x,y)].chnls[c];
             if(color_diff<0)color_diff*=-1;
             if(color_diff>threashold){
@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
   for(int c=0;c<3;c++){
     for(int x=0;x<width;x++){
         int color_old = 0;
-        for(int y=0;y<height;y++){
+        for(int y=0;y<height;y+=edgePixSkp){
             int color_diff = color_old - O_channelsRIGHT[cord(x,y)].chnls[c];
             if(color_diff<0)color_diff*=-1;
             if(color_diff>threashold){
@@ -230,6 +230,7 @@ int main(int argc, char *argv[]) {
         }
     }
   }
+  /// Convert to lower color depth. 64 colors.
   cout << "Doing color reduction for culling pixels that are too different. \n";
   cout << "Left View Pass. \n";
     for(int y=0;y<height;y++){
@@ -311,7 +312,7 @@ int main(int argc, char *argv[]) {
     for(int x=0;x<width;x++){
         int Gx=O_bestMatch[x].matchWith;
         int Gscore=O_bestMatch[x].pixScore;
-        for(int xTest=x+1;xTest<width;xTest++){
+        for(int xTest=x+1;xTest<(x+Pix_Diff)&&xTest<width;xTest++){
             ///Find two left pixels that are matching with the same right pixel, and find the better match.
             int Hx=O_bestMatch[xTest].matchWith;
             int Hscore=O_bestMatch[xTest].pixScore;

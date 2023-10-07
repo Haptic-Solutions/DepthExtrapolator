@@ -13,10 +13,12 @@
 #define scan_debug 749
 
 bool spherical_Lens = 0;
+
+int edgePixSkp = 3;
 int Xsq_wdth = 3;
 int Ysq_wdth = 3;
 int threashold = 20;      ///Larger numbers == less sensitive.
-int MaxColorDiff = 25;    ///Smaller numbers == closer match.
+int MaxColorDiff = 18;    ///Smaller numbers == closer match.
 
 ///Distance is in mm.
 ///Angles are in Radians.
