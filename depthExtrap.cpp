@@ -29,18 +29,22 @@ int main(int argc, char *argv[]) {
   //if there's an error, display it
   if(error) {std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;return 0;}
 
-  error = lodepng::decode(Rimage, width, height, "test/RIGHT.png", LCT_RGB, 8);
+  error = lodepng::decode(Rimage, Rwidth, Rheight, "test/RIGHT.png", LCT_RGB, 8);
   //if there's an error, display it
   if(error) {std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;return 0;}
   //the pixels are now in the vector "Limage", 3 bytes per pixel, ordered RGBRGB..., use it as texture, draw it, ...
+  if(width!=Rwidth){cout << "Width of images does not match. Stopping. \n";return 0;}
+  if(height!=Rheight){cout << "Width of images does not match. Stopping. \n";return 0;}
   cout << "Got Files. Processing. \n";
-  cout << "Pre-calculating parameters. \n\n";
+  cout << "Pre-calculating parameters. \n";
   ///Pr-Calculate FOV based on camera parameters if it wasn't provided.
   X_Angle = new double [width];
   Y_Angle = new double [height];
   double F_width = width;    //Convert to floating point number.
   double F_height = height;  //Convert to floating point number.
   double F_i;
+  scan_debug = (width/2)-1;
+  cout << "Debug Scan is number:: " << scan_debug << "\n\n";
 ///Pre-calculate all XY angles into two arrays.
 // Need Image resolution, and XY FOV or Sensor size + Lens focal length.
 // FOV = 2 arctan(sensorSize/(2f))
@@ -308,12 +312,12 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    /// Check for better matches than what we already found.
+    /// Check for better matches than what we already found and discard the ones that are worse.
     for(int x=0;x<width;x++){
         int Gx=O_bestMatch[x].matchWith;
         int Gscore=O_bestMatch[x].pixScore;
         for(int xTest=x+1;xTest<(x+Pix_Diff)&&xTest<width;xTest++){
-            ///Find two left pixels that are matching with the same right pixel, and find the better match.
+            ///Find two left pixels that are matching with the same right pixel; find and use the better match.
             int Hx=O_bestMatch[xTest].matchWith;
             int Hscore=O_bestMatch[xTest].pixScore;
             if(Gx>0 && Hx>0 && Gx==Hx){
@@ -346,6 +350,10 @@ int main(int argc, char *argv[]) {
         int RightX=O_bestMatch[x].matchWith;
         if(RightX>0){
             match_used++;
+            if(x==scan_debug){
+                reduxMatchLEFT[cord(x,y)]=1;
+                reduxMatchRIGHT[cord(RightX,y)]=1;
+            }
             ///We got points, now calculate where they are actually at.
             calcPoint(x, RightX, y, O_Points);
         }
@@ -354,15 +362,18 @@ int main(int argc, char *argv[]) {
         O_bestMatch[x].pixScore = -1;
     }
   }
+  ///Free up memory.
+  delete[] O_bestMatch; delete[] reduxOutLEFT; delete[] reduxOutRIGHT;
+  delete[] edgeOutLEFT; delete[] edgeOutRIGHT;
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
   cout << "Duplicate points found and not using:: " << final_multi_point << "\n";
   cout << "Number of Total Points Found:: " << match_count << "\n";
   cout << "Better Matches Found and Reallocated:: " << better_matches << "\n";
   cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
   cout << "Points to be used for output:: " << match_used << "\n";
-  //cout << "Writing edge-match debug files. \n";
-  //pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
-  //pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
+  cout << "Writing edge-match debug files. \n";
+  pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
+  pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
   ofstream Pfile;
@@ -384,6 +395,7 @@ int main(int argc, char *argv[]) {
             }
         }
   }
+  delete[] O_channelsLEFT; delete[] O_channelsRIGHT;
   cout << "Wrote " << Fout_Count << " points to file.\n";
   if(Fout_Count != match_used) cout << "!-> WARNING. Points written does not match points found. IDK why. <-! \n";
   Pfile.close();
@@ -448,13 +460,13 @@ void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
     switch(type){
         case 0:
             #ifdef LINUX_BUILD
-            mkdir("./output",0777);
+            mkdir("./EdgeOutput",0777);
             #endif
             #ifndef LINUX_BUILD
-            _mkdir("./output");
+            _mkdir("./EdgeOutput");
             #endif
-            if(frameNum==1)fileNumber << "./output/LEFTframe.png";
-            else fileNumber << "./output/RIGHTframe.png";
+            if(frameNum==1)fileNumber << "./EdgeOutput/LEFTframe.png";
+            else fileNumber << "./EdgeOutput/RIGHTframe.png";
         break;
         case 1:
             #ifdef LINUX_BUILD
@@ -473,7 +485,7 @@ void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
     delete[] rgbimage;
 }
 
-
+///Grid comparator.
 int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
     int PX_Match=0;
     for(int Yadj=-Ysq_wdth;Yadj<=Ysq_wdth;Yadj++){
@@ -495,6 +507,7 @@ int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
     return PX_Match;
 }
 
+///Point calculator.
 void calcPoint(int x, int Tx, int y, C_Points * O_Points){
     ///Found a point match. Now compute Z distance.
     /// We know that Z=0 for the first left and right points and that X=+-C_Dist/2

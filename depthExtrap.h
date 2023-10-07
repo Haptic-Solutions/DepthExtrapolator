@@ -10,9 +10,9 @@
 #define Z 2
 #define CordX 0
 #define CordY 1
-#define scan_debug 749
 
 bool spherical_Lens = 0;
+int scan_debug = 0;
 
 int edgePixSkp = 3;
 int Xsq_wdth = 3;
@@ -31,7 +31,7 @@ double lens_foc = 18;      //test parameter. NIKON D3300 with 18-140mm lens.
 double X_Size = 23.5;      //test parameter. NIKON D3300 with 18-140mm lens.
 double Y_Size = 15.6;      //test parameter. NIKON D3300 with 18-140mm lens.
 
-unsigned int width, height;
+unsigned int width, height, Rwidth, Rheight;
 unsigned char * edgeOutLEFT;
 unsigned char * edgeOutRIGHT;
 unsigned char * reduxOutLEFT;
