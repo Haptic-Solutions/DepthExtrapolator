@@ -268,15 +268,17 @@ int main(int argc, char *argv[]) {
   int matches_discarded = 0;
   int T_Edge_Cnt = 0;
   int final_multi_point=0;
+  int maxTD = (((Xsq_wdth*2)+1)*((Ysq_wdth*2)+1))*maxTotalDiff;
   double scale_dist = max_Dist / min_Dist;
   for(int y=Ysq_wdth;y<height-Ysq_wdth;y++){
     for(int x=Pix_LeftCam_Start;x<width-Xsq_wdth;x++){
         if(x!=(width/2)&&edgeOutLEFT[cord(x,y)]==1){
+            int PX_Match = 0;
             T_Edge_Cnt++;
             //Found an edge on left viewport, search right viewport for edges and check to see if color matches.
             int LLX=x+Pix_Start;
             if(LLX<0)LLX=0;
-            int lowest_Diff=10000;
+            int lowest_Diff=maxTD;
             int lowest_Tx=0;
             int lowest_y=0;
             int multi_point=0;
@@ -291,7 +293,7 @@ int main(int argc, char *argv[]) {
                 if(reduxOutLEFT[cord(x,y)]==reduxOutRIGHT[cord(Tx,y)]&&Tx!=(width/2)){
                     //Found a Right-View edge, now compare colors and find the closest match.
                     ///Test square of pixels.
-                    int PX_Match = gridComp(x,Tx,y,O_channelsLEFT,O_channelsRIGHT);    ///Get best match.
+                    PX_Match = gridComp(x,Tx,y,O_channelsLEFT,O_channelsRIGHT);    ///Get best match.
                     if(PX_Match<lowest_Diff&&PX_Match>=0){
                         lowest_Diff=PX_Match;
                         lowest_Tx=Tx;
@@ -303,8 +305,9 @@ int main(int argc, char *argv[]) {
                         reduxOutRIGHT[cord(lowest_Tx,y)]=255;   ///Also delete it. If it's the same for this one then it's redundant to keep testing them.
                     }
                 }
+                if(PX_Match==-2)break;  ///Break from loop if there isn't enough detail in a block.
             }
-            if(lowest_Diff<10000 && multi_point<1){
+            if(lowest_Diff<maxTD && multi_point<1 && PX_Match!=-2){
                 /// Mark potential matches.
                 match_count++;
                 O_bestMatch[x].matchWith = lowest_Tx;
@@ -346,34 +349,37 @@ int main(int argc, char *argv[]) {
         }
     }
     ///Use remaining points to calculate distances.
-    for(int x=0;x<width;x++){
-        int RightX=O_bestMatch[x].matchWith;
+    for(int LeftX=0;LeftX<width;LeftX++){
+        int RightX=O_bestMatch[LeftX].matchWith;
         if(RightX>0){
             match_used++;
-            if(x==scan_debug){
-                reduxMatchLEFT[cord(x,y)]=1;
+            if(LeftX==scan_debug){
+                reduxMatchLEFT[cord(LeftX,y)]=1;
                 reduxMatchRIGHT[cord(RightX,y)]=1;
             }
-            ///We got points, now calculate where they are actually at.
-            calcPoint(x, RightX, y, O_Points);
+            ///We got a set of points, now get their angles and calculate where they are actually at.
+            calcPoint(LeftX, RightX, y, O_Points);
         }
         ///Clear it after it's been used.
-        O_bestMatch[x].matchWith = 0;
-        O_bestMatch[x].pixScore = -1;
+        O_bestMatch[LeftX].matchWith = 0;
+        O_bestMatch[LeftX].pixScore = -1;
     }
   }
   ///Free up memory.
   delete[] O_bestMatch; delete[] reduxOutLEFT; delete[] reduxOutRIGHT;
   delete[] edgeOutLEFT; delete[] edgeOutRIGHT;
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
-  cout << "Duplicate points found and not using:: " << final_multi_point << "\n";
+  cout << "Out of range center potential matches culled:: " << MaxDiffCenters << "\n";
+  cout << "Out of range block potential matches culled:: " << MaxDiffBlocks << "\n";
+  cout << "Low Contrast Points Culled:: " << LowContrastBlocks << "\n";
   cout << "Number of Total Points Found:: " << match_count << "\n";
+  cout << "Duplicate points found and not using:: " << final_multi_point << "\n";
   cout << "Better Matches Found and Reallocated:: " << better_matches << "\n";
   cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
   cout << "Points to be used for output:: " << match_used << "\n";
-  cout << "Writing edge-match debug files. \n";
-  pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
-  pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
+  //cout << "Writing edge-match debug files. \n";
+  //pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
+  //pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
   ofstream Pfile;
@@ -384,7 +390,7 @@ int main(int argc, char *argv[]) {
   double X_Scaler = width;
   for(int y=0;y<height;y++){
         for(int x=Pix_LeftCam_Start;x<width;x++){
-            if(O_Points[cord(x,y)].Cord[Y]){
+            if(O_Points[cord(x,y)].Cord[X]||O_Points[cord(x,y)].Cord[Y]||O_Points[cord(x,y)].Cord[Z]){
                 double F_y = y;
                 Fout_Count++;
                 Pfile << O_Points[cord(x,y)].Cord[X] << " " << O_Points[cord(x,y)].Cord[Z]*-1 << " " << O_Points[cord(x,y)].Cord[Y]*-1 << " "
@@ -488,13 +494,27 @@ void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
 ///Grid comparator.
 int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
     int PX_Match=0;
+    int LctstCount=0;
     for(int Yadj=-Ysq_wdth;Yadj<=Ysq_wdth;Yadj++){
         for(int Xadj=-Xsq_wdth;Xadj<=Xsq_wdth;Xadj++){
-            for(int c=0; c<=2; c++){
+            for(int c=0; c<3; c++){
+
+                int LCenterContrast = LEFTc[cord(x,y)].chnls[c];
+                LCenterContrast -= LEFTc[cord(x+Xadj,y+Yadj)].chnls[c];
+                if(LCenterContrast<0)LCenterContrast*=-1;
+                if(LCenterContrast>minBKcontrast)LctstCount++;
+
                 int Diff_Test = LEFTc[cord(x+Xadj,y+Yadj)].chnls[c] - RIGHTc[cord(Tx+Xadj,y+Yadj)].chnls[c];
                 if(Diff_Test<0)Diff_Test*=-1; //Get absolute value of difference.
                 ///Cull if center pixel is out of range and skip to next pixel.
-                if(Diff_Test>MaxColorDiff){
+                ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
+                if(!Xadj && !Yadj && Diff_Test>MaxCenterDiff){
+                    MaxDiffCenters++;
+                    PX_Match=-1;    //Mark it to skip, then break from loop.
+                    break;
+                }
+                else if(Diff_Test>MaxColorDiff){
+                    MaxDiffBlocks++;
                     PX_Match=-1;    //Mark it to skip, then break from loop.
                     break;
                 }
@@ -503,6 +523,10 @@ int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
             if(PX_Match<0)break;    //Break from marked bad matches and check next line for any.
         }
         if(PX_Match<0)break;    //Break from marked bad matches and check next line for any.
+    }
+    if(LctstCount<MinCtstCount){
+        LowContrastBlocks++;
+        PX_Match=-2;    //Mark it to skip to next left pixel block.
     }
     return PX_Match;
 }

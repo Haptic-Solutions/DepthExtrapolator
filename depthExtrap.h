@@ -14,11 +14,15 @@
 bool spherical_Lens = 0;
 int scan_debug = 0;
 
-int edgePixSkp = 3;
-int Xsq_wdth = 3;
-int Ysq_wdth = 3;
-int threashold = 20;      ///Larger numbers == less sensitive.
-int MaxColorDiff = 18;    ///Smaller numbers == closer match.
+int edgePixSkp = 4;
+int Xsq_wdth = 7;           /// Width of block to test. times 2 then add 1
+int Ysq_wdth = 7;           /// Height of block to test. times 2 then add 1
+int threashold = 20;        /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+int MaxCenterDiff = 15;      /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
+int MaxColorDiff = 25;      /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
+int maxTotalDiff = 35;      /// Max overall difference. 0-255 Smaller numbers == closer match.
+int minBKcontrast = 2;      /// Minimum contrast between center pixel and surrounding pixels. 0-255 Smaller numbers == closer match.
+int MinCtstCount = 1;       /// Number of pixels that need minimum contrast to center pixel.
 
 ///Distance is in mm.
 ///Angles are in Radians.
@@ -43,6 +47,9 @@ double * Sets;
 double * X_Angle;
 double * Y_Angle;
 double dimScale = 0;
+int MaxDiffCenters = 0;
+int MaxDiffBlocks = 0;
+int LowContrastBlocks = 0;
 
 unsigned int cord(unsigned int, unsigned int);
 double DegToRad(double);
