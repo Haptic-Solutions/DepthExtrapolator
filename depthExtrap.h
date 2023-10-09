@@ -15,14 +15,18 @@ bool spherical_Lens = 0;
 int scan_debug = 0;
 
 int edgePixSkp = 4;
-int Xsq_wdth = 7;           /// Width of block to test. times 2 then add 1
-int Ysq_wdth = 7;           /// Height of block to test. times 2 then add 1
-int threashold = 20;        /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
-int MaxCenterDiff = 15;      /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
-int MaxColorDiff = 25;      /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
-int maxTotalDiff = 35;      /// Max overall difference. 0-255 Smaller numbers == closer match.
+int Xsq_wdth = 5;           /// Width of block to test. times 2 then add 1
+int Ysq_wdth = 5;           /// Height of block to test. times 2 then add 1
+int threashold = 15;        /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+int MaxCenterDiff = 20;     /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
+int MaxColorDiff = 30;      /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
+int maxTotalDiff = 40;      /// Max overall difference. 0-255 Smaller numbers == closer match.
 int minBKcontrast = 2;      /// Minimum contrast between center pixel and surrounding pixels. 0-255 Smaller numbers == closer match.
 int MinCtstCount = 1;       /// Number of pixels that need minimum contrast to center pixel.
+float MinCullDist = 0.05;   /// Minimum Cull Distance in meters to count towards MinCullCount.
+int MinCullCount = 15;      /// Minimum number of nearby points to not cull.
+int TestGrid = 5;           /// Size of Culling test grid. times 2 then add 1
+int CullingPasses = 0;     /// Number of passes to make for distance culling. Set to 0 for AUTO.
 
 ///Distance is in mm.
 ///Angles are in Radians.
@@ -99,15 +103,32 @@ public:
     }
 };
 
+class C_Chroma{
+public:
+    unsigned int * chnl;
+    /** Memory constructor **/
+    C_Chroma(void){
+        chnl = new unsigned int [3];
+        chnl[0]=0;
+        chnl[1]=0;
+        chnl[2]=0;
+    }
+    ~C_Chroma(void){
+        delete[] chnl;
+    }
+};
+
 class C_Points{
 public:
     double * Cord;
+    int PassNum;
     /** Memory constructor **/
     C_Points(void){
         Cord = new double [3];
         Cord[0]=0;
         Cord[1]=0;
         Cord[2]=0;
+        PassNum=0;
     }
     ~C_Points(void){
         delete[] Cord;

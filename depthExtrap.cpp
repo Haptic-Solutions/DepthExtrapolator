@@ -376,10 +376,67 @@ int main(int argc, char *argv[]) {
   cout << "Duplicate points found and not using:: " << final_multi_point << "\n";
   cout << "Better Matches Found and Reallocated:: " << better_matches << "\n";
   cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
-  cout << "Points to be used for output:: " << match_used << "\n";
-  //cout << "Writing edge-match debug files. \n";
-  //pngmake(1, width, height, 1, 0); ///Make test frame of the edge detection.
-  //pngmake(2, width, height, 1, 1); ///Make test frame of the edge detection.
+  cout << "Total point matches found:: " << match_used << "\n";
+  cout << "Culling stray points.\n";
+  C_Points* O_CulledPoints;
+  O_CulledPoints = new C_Points [match_used];
+  C_Chroma* O_CulledColors;
+  O_CulledColors = new C_Chroma [match_used];
+  int lastMatchUsed = 0;
+  int totalPasses = 0;
+  int oldMatch_used = match_used;
+  if(!CullingPasses)CullingPasses=10000;
+  for(int CPasses=0;CPasses<CullingPasses;CPasses++){
+      match_used=0;
+      int f=0;
+      int cullCount = 0;
+      for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            cullCount = 0;
+            float Dx=O_Points[cord(x,y)].Cord[X]; float Dy=O_Points[cord(x,y)].Cord[Y]; float Dz=O_Points[cord(x,y)].Cord[Z];
+            if(O_Points[cord(x,y)].PassNum==CPasses && (Dx||Dy||Dz)){
+                int xStart = x-TestGrid;
+                int xEnd = x+TestGrid;
+                int yStart = y-TestGrid;
+                int yEnd = y+TestGrid;
+                if(xStart<0)xStart=0;if(xEnd>width-1)xEnd=width-1;
+                if(yStart<0)yStart=0;if(yEnd>height-1)yEnd=height-1;
+                for(int Ty=yStart;Ty<yEnd;Ty++){
+                    for(int Tx=xStart;Tx<xEnd;Tx++){
+                        float Ex=O_Points[cord(Tx,Ty)].Cord[X]; float Ey=O_Points[cord(Tx,Ty)].Cord[Y]; float Ez=O_Points[cord(Tx,Ty)].Cord[Z];
+                        if(Ex||Ey||Ez){
+                            float PointDist = sqrt(pow(Ex-Dx,2)+pow(Ey-Dy,2)+pow(Ez-Dz,2));
+                            if(PointDist<MinCullDist){
+                                cullCount++;
+                            }
+                            if(cullCount>=MinCullCount){
+                                O_CulledPoints[f].Cord[X] = Dx;
+                                O_CulledPoints[f].Cord[Y] = Dy;
+                                O_CulledPoints[f].Cord[Z] = Dz;
+                                O_CulledColors[f].chnl[R] = O_channelsLEFT[cord(x,y)].chnls[R];
+                                O_CulledColors[f].chnl[G] = O_channelsLEFT[cord(x,y)].chnls[G];
+                                O_CulledColors[f].chnl[B] = O_channelsLEFT[cord(x,y)].chnls[B];
+                                O_Points[cord(x,y)].PassNum++;
+                                f++;
+                                match_used++;
+                                cullCount=-1;
+                                break;
+                            }
+                        }
+                    }
+                    if(cullCount==-1)break;
+                }
+            }
+        }
+      }
+      totalPasses++;
+      if(lastMatchUsed==match_used)break;   ///If we have made enough passes that no more points are being culled then break from loop.
+      lastMatchUsed=match_used;
+  }
+  delete[] O_channelsLEFT; delete[] O_channelsRIGHT;
+  cout << "Total Culling Passes:: " << totalPasses << "\n";
+  cout << "Odd Points Culled:: " << oldMatch_used-match_used << "\n";
+  cout << "Points remaining after distance culling:: " << match_used << "\n";
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
   ofstream Pfile;
@@ -387,21 +444,18 @@ int main(int argc, char *argv[]) {
   Pfile << PLYheader_Start[0] << match_used << "\n";
   Pfile << PLYheader_End[0];
   int Fout_Count = 0;
-  double X_Scaler = width;
-  for(int y=0;y<height;y++){
-        for(int x=Pix_LeftCam_Start;x<width;x++){
-            if(O_Points[cord(x,y)].Cord[X]||O_Points[cord(x,y)].Cord[Y]||O_Points[cord(x,y)].Cord[Z]){
-                double F_y = y;
-                Fout_Count++;
-                Pfile << O_Points[cord(x,y)].Cord[X] << " " << O_Points[cord(x,y)].Cord[Z]*-1 << " " << O_Points[cord(x,y)].Cord[Y]*-1 << " "
-                << O_channelsLEFT[cord(x,y)].chnls[R] << " "
-                << O_channelsLEFT[cord(x,y)].chnls[G] << " ";
-                if(Fout_Count >= match_count) Pfile << O_channelsLEFT[cord(x,y)].chnls[B];
-                else Pfile << O_channelsLEFT[cord(x,y)].chnls[B] << "\n";
-            }
+  for(int d=0;d<match_used;d++){
+        if(O_CulledPoints[d].Cord[X]||O_CulledPoints[d].Cord[Y]||O_CulledPoints[d].Cord[Z]){
+            Fout_Count++;
+        Pfile << O_CulledPoints[d].Cord[X] << " "
+            << O_CulledPoints[d].Cord[Z]*-1 << " "
+            << O_CulledPoints[d].Cord[Y]*-1 << " "
+            << O_CulledColors[d].chnl[R] << " "
+            << O_CulledColors[d].chnl[G] << " ";
+            if(Fout_Count >= match_count) Pfile << O_CulledColors[d].chnl[B];
+            else Pfile << O_CulledColors[d].chnl[B] << "\n";
         }
   }
-  delete[] O_channelsLEFT; delete[] O_channelsRIGHT;
   cout << "Wrote " << Fout_Count << " points to file.\n";
   if(Fout_Count != match_used) cout << "!-> WARNING. Points written does not match points found. IDK why. <-! \n";
   Pfile.close();
