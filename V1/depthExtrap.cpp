@@ -23,6 +23,8 @@ int main(int argc, char *argv[]) {
   //Use lodepng to open the specified PNG file.
   //Using boilerplate code example listed in the header file. Thanks lode!
   //load and decode left image.
+  std::vector<unsigned char> Limage;
+  std::vector<unsigned char> Rimage;
   unsigned error = lodepng::decode(Limage, width, height, "test/LEFT.png", LCT_RGB, 8);
   //if there's an error, display it
   if(error) {std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;return 0;}
@@ -41,6 +43,8 @@ int main(int argc, char *argv[]) {
   double F_width = width;    //Convert to floating point number.
   double F_height = height;  //Convert to floating point number.
   double F_i;
+  scan_debug = (width/2)-1;
+  cout << "Debug Scan is number:: " << scan_debug << "\n\n";
 ///Pre-calculate all XY angles into two arrays.
 // Need Image resolution, and XY FOV or Sensor size + Lens focal length.
 // FOV = 2 arctan(sensorSize/(2f))
@@ -122,14 +126,142 @@ int main(int argc, char *argv[]) {
   cout << "Pix_Width:: " << Pix_Diff << " pix\n";
   cout << "Pix_LeftCam_Start:: " << Pix_LeftCam_Start << " pix\n";
 
-
-  ///Do edge matching per line using color data to match points between Left and Right views.
-  C_bMatch* O_bestMatch;
-  O_bestMatch = new C_bMatch [width];
-  PixSkip = new bool [width*height];
-  for(int i=0;i<width*height;i++)PixSkip[i]=0;
+  /// Split the color channels to make them easier to understand the process.
+  C_chSplit* O_channelsLEFT;
+  C_chSplit* O_channelsRIGHT;
+  O_channelsLEFT = new C_chSplit [width*height];
+  O_channelsRIGHT = new C_chSplit [width*height];
   C_Points* O_Points;
   O_Points = new C_Points [width*height];
+  int eoi = width*height;
+  // Fill channels with data
+  int ImgIndex = 0;
+  cout << "Splitting Channels. \n";
+  for(int i=0;i<eoi;i++){
+    O_channelsLEFT[i].chnls[R] = Limage[ImgIndex];
+    ImgIndex++;
+    O_channelsLEFT[i].chnls[G] = Limage[ImgIndex];
+    ImgIndex++;
+    O_channelsLEFT[i].chnls[B] = Limage[ImgIndex];
+    ImgIndex++;
+  }
+  ImgIndex = 0;
+  for(int i=0;i<eoi;i++){
+    O_channelsRIGHT[i].chnls[R] = Rimage[ImgIndex];
+    ImgIndex++;
+    O_channelsRIGHT[i].chnls[G] = Rimage[ImgIndex];
+    ImgIndex++;
+    O_channelsRIGHT[i].chnls[B] = Rimage[ImgIndex];
+    ImgIndex++;
+  }
+  cout << "Channels Split, doing edge detection. \n";
+  edgeOutLEFT = new unsigned char [(width*height)];
+  edgeOutRIGHT = new unsigned char [(width*height)];
+  reduxOutLEFT = new unsigned char [(width*height)];
+  reduxOutRIGHT = new unsigned char [(width*height)];
+  reduxMatchLEFT = new unsigned char [(width*height)];
+  reduxMatchRIGHT = new unsigned char [(width*height)];
+  for(int i=0;i<(width*height);i++)edgeOutLEFT[i]=0;    //Initialize edgeOutLEFT
+  for(int i=0;i<(width*height);i++)edgeOutRIGHT[i]=0;    //Initialize edgeOutRIGHT
+  for(int i=0;i<(width*height);i++)reduxOutLEFT[i]=0;    //Initialize reduxOutLEFT
+  for(int i=0;i<(width*height);i++)reduxOutRIGHT[i]=0;    //Initialize reduxOutRIGHT
+  for(int i=0;i<(width*height);i++)reduxMatchLEFT[i]=0;    //Initialize reduxOutLEFT
+  for(int i=0;i<(width*height);i++)reduxMatchRIGHT[i]=0;    //Initialize reduxOutRIGHT
+  /// Do horizontal and vertical edge detection.
+  int L_Edge_Cnt=0;
+  int R_Edge_Cnt=0;
+  ///Horizontal
+  cout << "Horizontal Left View Pass. \n";
+  for(int c=0;c<3;c++){
+    for(int y=0;y<height;y++){
+        int color_old = 0;
+        for(int x=0;x<width;x+=edgePixSkp){
+            int color_diff = color_old - O_channelsLEFT[cord(x,y)].chnls[c];
+            if(color_diff<0)color_diff*=-1;
+            if(color_diff>threashold){
+                L_Edge_Cnt++;
+                edgeOutLEFT[cord(x,y)]=1;
+            }
+            color_old = O_channelsLEFT[cord(x,y)].chnls[c];
+        }
+    }
+  }
+  ///Vertical
+  cout << "Vertical Left View Pass. \n";
+  for(int c=0;c<3;c++){
+    for(int x=0;x<width;x++){
+        int color_old = 0;
+        for(int y=0;y<height;y+=edgePixSkp){
+            int color_diff = color_old - O_channelsLEFT[cord(x,y)].chnls[c];
+            if(color_diff<0)color_diff*=-1;
+            if(color_diff>threashold){
+                L_Edge_Cnt++;
+                edgeOutLEFT[cord(x,y)]=1;
+            }
+            color_old = O_channelsLEFT[cord(x,y)].chnls[c];
+        }
+    }
+  }
+  ///Horizontal
+  cout << "Horizontal Right View Pass. \n";
+  for(int c=0;c<3;c++){
+    for(int y=0;y<height;y++){
+        int color_old = 0;
+        for(int x=0;x<width;x+=edgePixSkp){
+            int color_diff = color_old - O_channelsRIGHT[cord(x,y)].chnls[c];
+            if(color_diff<0)color_diff*=-1;
+            if(color_diff>threashold){
+                R_Edge_Cnt++;
+                edgeOutRIGHT[cord(x,y)]=1;
+            }
+            color_old = O_channelsRIGHT[cord(x,y)].chnls[c];
+        }
+    }
+  }
+  ///Vertical
+  cout << "Vertical Right View Pass. \n";
+  for(int c=0;c<3;c++){
+    for(int x=0;x<width;x++){
+        int color_old = 0;
+        for(int y=0;y<height;y+=edgePixSkp){
+            int color_diff = color_old - O_channelsRIGHT[cord(x,y)].chnls[c];
+            if(color_diff<0)color_diff*=-1;
+            if(color_diff>threashold){
+                R_Edge_Cnt++;
+                edgeOutRIGHT[cord(x,y)]=1;
+            }
+            color_old = O_channelsRIGHT[cord(x,y)].chnls[c];
+        }
+    }
+  }
+  /// Convert to lower color depth. 64 colors.
+  cout << "Doing color reduction for culling pixels that are too different. \n";
+  cout << "Left View Pass. \n";
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width-1;x++){
+            reduxOutLEFT[cord(x,y)] |= (O_channelsLEFT[cord(x,y)].chnls[R]>>2)&0x30;
+            reduxOutLEFT[cord(x,y)] |= (O_channelsLEFT[cord(x,y)].chnls[G]>>4)&0x0C;
+            reduxOutLEFT[cord(x,y)] |= (O_channelsLEFT[cord(x,y)].chnls[B]>>6)&0x03;
+        }
+    }
+  /// Do edge detection for Right channel.
+  cout << "Right View Pass. \n";
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width-1;x++){
+            reduxOutRIGHT[cord(x,y)] |= (O_channelsRIGHT[cord(x,y)].chnls[R]>>2)&0x30;
+            reduxOutRIGHT[cord(x,y)] |= (O_channelsRIGHT[cord(x,y)].chnls[G]>>4)&0x0C;
+            reduxOutRIGHT[cord(x,y)] |= (O_channelsRIGHT[cord(x,y)].chnls[B]>>6)&0x03;
+        }
+    }
+  cout << "Generating edge/color reduction diag output. \n";
+  pngmake(1, width, height, 0, 0); ///Make test frame of the edge detection.
+  pngmake(2, width, height, 0, 1); ///Make test frame of the edge detection.
+  cout << "Left RGB Edges Found:: " << L_Edge_Cnt << "\n";
+  cout << "Right RGB Edges Found:: " << R_Edge_Cnt << "\n";
+  ///Do edge matching per line using color data to match points between Left and Right views.
+  cout << "Doing points matching between channels. \n";
+  C_bMatch* O_bestMatch;
+  O_bestMatch = new C_bMatch [width];
   int match_count = 0;
   int match_used = 0;
   int better_matches = 0;
@@ -138,13 +270,12 @@ int main(int argc, char *argv[]) {
   int final_multi_point=0;
   int maxTD = (((Xsq_wdth*2)+1)*((Ysq_wdth*2)+1))*maxTotalDiff;
   double scale_dist = max_Dist / min_Dist;
-  cout << "Doing points matching between channels. \n";
   for(int y=Ysq_wdth;y<height-Ysq_wdth;y++){
     for(int x=Pix_LeftCam_Start;x<width-Xsq_wdth;x++){
-        if(x!=(width/2)&&isEdge(x,y)){
+        if(x!=(width/2)&&edgeOutLEFT[cord(x,y)]==1){
             int PX_Match = 0;
             T_Edge_Cnt++;
-            //Found an edge on left viewport, search right viewport to see if a color match is close enough.
+            //Found an edge on left viewport, search right viewport for edges and check to see if color matches.
             int LLX=x+Pix_Start;
             if(LLX<0)LLX=0;
             int lowest_Diff=maxTD;
@@ -152,21 +283,26 @@ int main(int argc, char *argv[]) {
             int lowest_y=0;
             int multi_point=0;
             for(int Tx=LLX+Xsq_wdth;Tx<x+Pix_End;Tx++){
-                if(!PixSkip[cord(Tx,y)]&&Tx!=(width/2)){
-                    if(reduxMatch(x,Tx,y)){
-                        //Found a Right-View edge, now compare colors and find the closest match.
-                        ///Test square of pixels.
-                        PX_Match = gridComp(x,Tx,y);    ///Get best match.
-                        if(PX_Match<lowest_Diff&&PX_Match>=0){
-                            lowest_Diff=PX_Match;
-                            lowest_Tx=Tx;
-                            multi_point=0;
-                        }
-                        else if(PX_Match==lowest_Diff&&PX_Match>=0){
-                            multi_point++;  //Mark if multiple matches and cull them out for now.
-                            final_multi_point++;    //debug counter.
-                            PixSkip[cord(lowest_Tx,y)]=1;  ///Set to skip. If it's the same for this one then it's redundant to keep testing them.
-                        }
+                if(x==scan_debug){
+                    for(int redY=0;redY<width;redY++){
+                        reduxMatchRIGHT[cord(LLX+Xsq_wdth,redY)]=15;
+                        reduxMatchRIGHT[cord(x+Pix_End,redY)]=15;
+                    }
+                }
+                if(Tx>width)break;  //Catch to keep from seg-faulting. Should never need this.
+                if(reduxOutLEFT[cord(x,y)]==reduxOutRIGHT[cord(Tx,y)]&&Tx!=(width/2)){
+                    //Found a Right-View edge, now compare colors and find the closest match.
+                    ///Test square of pixels.
+                    PX_Match = gridComp(x,Tx,y,O_channelsLEFT,O_channelsRIGHT);    ///Get best match.
+                    if(PX_Match<lowest_Diff&&PX_Match>=0){
+                        lowest_Diff=PX_Match;
+                        lowest_Tx=Tx;
+                        multi_point=0;
+                    }
+                    else if(PX_Match==lowest_Diff&&PX_Match>=0){
+                        multi_point++;  //Mark if multiple matches and cull them out for now.
+                        final_multi_point++;    //debug counter.
+                        reduxOutRIGHT[cord(lowest_Tx,y)]=255;   ///Also delete it. If it's the same for this one then it's redundant to keep testing them.
                     }
                 }
                 if(PX_Match==-2)break;  ///Break from loop if there isn't enough detail in a block.
@@ -177,7 +313,6 @@ int main(int argc, char *argv[]) {
                 O_bestMatch[x].matchWith = lowest_Tx;
                 O_bestMatch[x].pixScore = lowest_Diff;
             }
-            x+=edgePixSkp-1;
         }
     }
     /// Check for better matches than what we already found and discard the ones that are worse.
@@ -218,6 +353,10 @@ int main(int argc, char *argv[]) {
         int RightX=O_bestMatch[LeftX].matchWith;
         if(RightX>0){
             match_used++;
+            if(LeftX==scan_debug){
+                reduxMatchLEFT[cord(LeftX,y)]=1;
+                reduxMatchRIGHT[cord(RightX,y)]=1;
+            }
             ///We got a set of points, now get their angles and calculate where they are actually at.
             calcPoint(LeftX, RightX, y, O_Points);
         }
@@ -226,6 +365,9 @@ int main(int argc, char *argv[]) {
         O_bestMatch[LeftX].pixScore = -1;
     }
   }
+  ///Free up memory.
+  delete[] O_bestMatch; delete[] reduxOutLEFT; delete[] reduxOutRIGHT;
+  delete[] edgeOutLEFT; delete[] edgeOutRIGHT;
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
   cout << "Out of range center potential matches culled:: " << MaxDiffCenters << "\n";
   cout << "Out of range block potential matches culled:: " << MaxDiffBlocks << "\n";
@@ -271,9 +413,9 @@ int main(int argc, char *argv[]) {
                                 O_CulledPoints[f].Cord[X] = Dx;
                                 O_CulledPoints[f].Cord[Y] = Dy;
                                 O_CulledPoints[f].Cord[Z] = Dz;
-                                O_CulledColors[f].chnl[R] = Limage[COLOR_cord(x,y,R)];
-                                O_CulledColors[f].chnl[G] = Limage[COLOR_cord(x,y,G)];
-                                O_CulledColors[f].chnl[B] = Limage[COLOR_cord(x,y,B)];
+                                O_CulledColors[f].chnl[R] = O_channelsLEFT[cord(x,y)].chnls[R];
+                                O_CulledColors[f].chnl[G] = O_channelsLEFT[cord(x,y)].chnls[G];
+                                O_CulledColors[f].chnl[B] = O_channelsLEFT[cord(x,y)].chnls[B];
                                 O_Points[cord(x,y)].PassNum++;
                                 f++;
                                 match_used++;
@@ -291,6 +433,7 @@ int main(int argc, char *argv[]) {
       if(lastMatchUsed==match_used)break;   ///If we have made enough passes that no more points are being culled then break from loop.
       lastMatchUsed=match_used;
   }
+  delete[] O_channelsLEFT; delete[] O_channelsRIGHT;
   cout << "Total Culling Passes:: " << totalPasses << "\n";
   cout << "Odd Points Culled:: " << oldMatch_used-match_used << "\n";
   cout << "Points remaining after distance culling:: " << match_used << "\n";
@@ -320,15 +463,7 @@ int main(int argc, char *argv[]) {
 }
 
 unsigned int cord(unsigned int x, unsigned int y){
-    unsigned int output = (y*width)+x;
-    if(output>=width*height)return 0;
-    else return output;
-}
-
-unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c){
-    unsigned int output = (y*(width*3))+((x*3)+c);
-    if(output>=width*height*3)return 0;
-    else return output;
+    return (y*width)+x;
 }
 
 double DegToRad(double DEG){
@@ -339,20 +474,91 @@ double RadToDeg(double RAD){
     return RAD*(180/M_PI);
 }
 
+/* png image make */
+/* Converts the three individual RGB channels into an RGB array for the lodepng library*/
+void pngmake(int frameNum, int xRes, int yRes, int type, int channel){
+    unsigned int res = xRes*yRes;
+    unsigned int i = 0;
+    unsigned char * rgbimage;
+    unsigned char C_Add = 0;
+    //create a new array that's the appropriate size for our resolution. No alpha channel.
+    rgbimage = new unsigned char [(res*3)];
+    //Copy the RGB data over to an array suitable for the PNG conversion library.
+    for(int d=0;d<res-1;d++){
+        int pixel=0;
+        if(!type&&!channel){
+            rgbimage[i] = ((reduxOutLEFT[d]&0x30)<<2)*edgeOutLEFT[d];
+            i++;
+            rgbimage[i] = ((reduxOutLEFT[d]&0x0C)<<4)*edgeOutLEFT[d];
+            i++;
+            rgbimage[i] = ((reduxOutLEFT[d]&0x03)<<6)*edgeOutLEFT[d];
+            i++;
+        }
+        else if(!type&&channel){
+            rgbimage[i] = ((reduxOutRIGHT[d]&0x30)<<2)*edgeOutRIGHT[d];
+            i++;
+            rgbimage[i] = ((reduxOutRIGHT[d]&0x0C)<<4)*edgeOutRIGHT[d];
+            i++;
+            rgbimage[i] = ((reduxOutRIGHT[d]&0x03)<<6)*edgeOutRIGHT[d];
+            i++;
+        }
+        else {
+            if(reduxMatchLEFT[d]&&!channel&&type)pixel=255;
+            if(reduxMatchRIGHT[d]&&channel&&type)pixel=255;
+            C_Add=0;
+            if(reduxMatchRIGHT[d]>10&&channel&&type)C_Add=255;   ///Make red lines on Right channel.
+            rgbimage[i] = pixel;
+            i++;
+            rgbimage[i] = pixel-C_Add;
+            i++;
+            rgbimage[i] = pixel-C_Add;
+            i++;
+        }
+    }
+    //lodepng_encode24_file(("./output/frame" + std::to_string(frameNum) + ".png"), rgbimage, xRes, yRes);
+    stringstream fileNumber;
+    switch(type){
+        case 0:
+            #ifdef LINUX_BUILD
+            mkdir("./EdgeOutput",0777);
+            #endif
+            #ifndef LINUX_BUILD
+            _mkdir("./EdgeOutput");
+            #endif
+            if(frameNum==1)fileNumber << "./EdgeOutput/LEFTframe.png";
+            else fileNumber << "./EdgeOutput/RIGHTframe.png";
+        break;
+        case 1:
+            #ifdef LINUX_BUILD
+            mkdir("./debugOut",0777);
+            #endif
+            #ifndef LINUX_BUILD
+            _mkdir("./debugOut");
+            #endif
+            if(frameNum==1)fileNumber << "./debugOut/LEFTframe.png";
+            else fileNumber << "./debugOut/RIGHTframe.png";
+
+        break;
+    }
+    lodepng_encode24_file(fileNumber.str().c_str(), rgbimage, xRes, yRes);
+    //cleanup
+    delete[] rgbimage;
+}
+
 ///Grid comparator.
-int gridComp(int x, int Tx, int y){
+int gridComp(int x, int Tx, int y, C_chSplit * LEFTc, C_chSplit * RIGHTc){
     int PX_Match=0;
     int LctstCount=0;
     for(int Yadj=-Ysq_wdth;Yadj<=Ysq_wdth;Yadj++){
         for(int Xadj=-Xsq_wdth;Xadj<=Xsq_wdth;Xadj++){
-            /// Test each color channel.
             for(int c=0; c<3; c++){
-                int LCenterContrast = Limage[COLOR_cord(x,y,c)];
-                LCenterContrast -= Limage[COLOR_cord(x+Xadj,y+Yadj,c)];
+
+                int LCenterContrast = LEFTc[cord(x,y)].chnls[c];
+                LCenterContrast -= LEFTc[cord(x+Xadj,y+Yadj)].chnls[c];
                 if(LCenterContrast<0)LCenterContrast*=-1;
                 if(LCenterContrast>minBKcontrast)LctstCount++;
 
-                int Diff_Test = Limage[COLOR_cord(x+Xadj,y+Yadj,c)] - Rimage[COLOR_cord(Tx+Xadj,y+Yadj,c)];
+                int Diff_Test = LEFTc[cord(x+Xadj,y+Yadj)].chnls[c] - RIGHTc[cord(Tx+Xadj,y+Yadj)].chnls[c];
                 if(Diff_Test<0)Diff_Test*=-1; //Get absolute value of difference.
                 ///Cull if center pixel is out of range and skip to next pixel.
                 ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
@@ -406,27 +612,4 @@ void calcPoint(int x, int Tx, int y, C_Points * O_Points){
     O_Points[cord(x,y)].Cord[Y]=(tmpZ/YSlp)/1000;
     O_Points[cord(x,y)].Cord[Z]=tmpZ/1000;
     /// And now we have the Z distance of each point.
-}
-
-bool reduxMatch(int x, int Ex, int y){
-    int tstCNT=0;
-    for(int c=0;c<3;c++){
-        if((Limage[COLOR_cord(x,y,c)]&0xC0) == (Rimage[COLOR_cord(Ex,y,c)]&0xC0))tstCNT++;
-    }
-    if(tstCNT>2)return true;
-    else return false;
-}
-
-bool isEdge(int x, int y){
-    for(int c=0;c<3;c++){
-        int Etest=Limage[COLOR_cord(x,y,c)]-Limage[COLOR_cord(x+edgePixSkp,y,c)];
-        if(Etest<0)Etest*=-1;
-        if(threashold<Etest)return true;
-    }
-    for(int c=0;c<3;c++){
-        int Etest=Limage[COLOR_cord(x,y,c)]-Limage[COLOR_cord(x,y+edgePixSkp,c)];
-        if(Etest<0)Etest*=-1;
-        if(threashold<Etest)return true;
-    }
-    return false;
 }

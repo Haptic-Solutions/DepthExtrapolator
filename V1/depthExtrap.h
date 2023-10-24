@@ -12,6 +12,7 @@
 #define CordY 1
 
 bool spherical_Lens = 0;
+int scan_debug = 0;
 
 int edgePixSkp = 4;
 int Xsq_wdth = 5;           /// Width of block to test. times 2 then add 1
@@ -53,17 +54,11 @@ double dimScale = 0;
 int MaxDiffCenters = 0;
 int MaxDiffBlocks = 0;
 int LowContrastBlocks = 0;
-bool * PixSkip;
-
-std::vector<unsigned char> Limage;
-std::vector<unsigned char> Rimage;
 
 unsigned int cord(unsigned int, unsigned int);
-unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
 double DegToRad(double);
 double RadToDeg(double);
-bool isEdge(int, int);
-bool reduxMatch(int, int, int);
+void pngmake(int, int, int, int, int);
 
 
 class C_bMatch{
@@ -77,8 +72,22 @@ public:
     }
 };
 
+class C_chSplit{
+public:
+    unsigned int * chnls;
+    /** Memory constructor **/
+    C_chSplit(void){
+        chnls = new unsigned int [3];
+        chnls[0]=0;
+        chnls[1]=0;
+        chnls[2]=0;
+    }
+    ~C_chSplit(void){
+        delete[] chnls;
+    }
+};
 
-int gridComp(int, int, int);
+int gridComp(int, int, int, C_chSplit*, C_chSplit*);
 
 class C_pTable{
 public:
