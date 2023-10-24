@@ -20,6 +20,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
+  std::cout << "\x1B[2J\x1B[H"; /// Clear screen.
   //Use lodepng to open the specified PNG file.
   //Using boilerplate code example listed in the header file. Thanks lode!
   //load and decode left image.
@@ -136,10 +137,17 @@ int main(int argc, char *argv[]) {
   int matches_discarded = 0;
   int T_Edge_Cnt = 0;
   int final_multi_point=0;
+  int Completion_Status=height/10;
   int maxTD = (((Xsq_wdth*2)+1)*((Ysq_wdth*2)+1))*maxTotalDiff;
   double scale_dist = max_Dist / min_Dist;
-  cout << "Doing points matching between channels. \n";
+  cout << "Doing points matching between channels.\nWorking: ";
+  std::cout.clear(); ///Clear buffer.
+  cout << "<          >" << "\b\b\b\b\b\b\b\b\b\b\b" << std::flush;
   for(int y=Ysq_wdth;y<height-Ysq_wdth;y++){
+    if(y==Completion_Status){
+        Completion_Status+=height/10;
+        cout << "=" << std::flush;
+    }
     for(int x=Pix_LeftCam_Start;x<width-Xsq_wdth;x++){
         if(x!=(width/2)&&isEdge(x,y)){
             int PX_Match = 0;
@@ -226,6 +234,7 @@ int main(int argc, char *argv[]) {
         O_bestMatch[LeftX].pixScore = -1;
     }
   }
+  cout << "=> Completed!\n";
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
   cout << "Out of range center potential matches culled:: " << MaxDiffCenters << "\n";
   cout << "Out of range block potential matches culled:: " << MaxDiffBlocks << "\n";
@@ -244,6 +253,7 @@ int main(int argc, char *argv[]) {
   int totalPasses = 0;
   int oldMatch_used = match_used;
   if(!CullingPasses)CullingPasses=10000;
+  /// Cull lonely points. IE: Noise.
   for(int CPasses=0;CPasses<CullingPasses;CPasses++){
       match_used=0;
       int f=0;
@@ -252,6 +262,8 @@ int main(int argc, char *argv[]) {
         for(int x=0;x<width;x++){
             cullCount = 0;
             float Dx=O_Points[cord(x,y)].Cord[X]; float Dy=O_Points[cord(x,y)].Cord[Y]; float Dz=O_Points[cord(x,y)].Cord[Z];
+            /// If point 'exists', check distance against surrounding points in a grid pattern, but
+            /// only if it's PassNum is equal to the current pass. Otherwise, skip it.
             if(O_Points[cord(x,y)].PassNum==CPasses && (Dx||Dy||Dz)){
                 int xStart = x-TestGrid;
                 int xEnd = x+TestGrid;
@@ -262,11 +274,12 @@ int main(int argc, char *argv[]) {
                 for(int Ty=yStart;Ty<yEnd;Ty++){
                     for(int Tx=xStart;Tx<xEnd;Tx++){
                         float Ex=O_Points[cord(Tx,Ty)].Cord[X]; float Ey=O_Points[cord(Tx,Ty)].Cord[Y]; float Ez=O_Points[cord(Tx,Ty)].Cord[Z];
+                        /// If point 'exists', do comparison.
                         if(Ex||Ey||Ez){
-                            float PointDist = sqrt(pow(Ex-Dx,2)+pow(Ey-Dy,2)+pow(Ez-Dz,2));
-                            if(PointDist<MinCullDist){
-                                cullCount++;
-                            }
+                            /// If distance is less than minimum distance the count it.
+                            if(sqrt(pow(Ex-Dx,2)+pow(Ey-Dy,2)+pow(Ez-Dz,2))<MinCullDist)cullCount++;
+                            /// Once close points counted is above the minimum, no need to continue counting.
+                            /// Add to keepers, and continue to next point.
                             if(cullCount>=MinCullCount){
                                 O_CulledPoints[f].Cord[X] = Dx;
                                 O_CulledPoints[f].Cord[Y] = Dy;
@@ -274,10 +287,12 @@ int main(int argc, char *argv[]) {
                                 O_CulledColors[f].chnl[R] = Limage[COLOR_cord(x,y,R)];
                                 O_CulledColors[f].chnl[G] = Limage[COLOR_cord(x,y,G)];
                                 O_CulledColors[f].chnl[B] = Limage[COLOR_cord(x,y,B)];
-                                O_Points[cord(x,y)].PassNum++;
+                                O_Points[cord(x,y)].PassNum=CPasses+1; ///Mark PassNum to which pass we are on +1.
+                                /// We use this to only check the ones that match the same pass we are on. This
+                                /// essentially marks the keepers in 'O_Points'.
                                 f++;
                                 match_used++;
-                                cullCount=-1;
+                                cullCount=-1; /// Mark to continue without counting more.
                                 break;
                             }
                         }
@@ -287,12 +302,13 @@ int main(int argc, char *argv[]) {
             }
         }
       }
-      totalPasses++;
-      if(lastMatchUsed==match_used)break;   ///If we have made enough passes that no more points are being culled then break from loop.
+      /// If Match_used isn't changing between passes, then we have reached the limit in how many will be culled.
+      if(lastMatchUsed==match_used)break;
       lastMatchUsed=match_used;
+      totalPasses++;
   }
   cout << "Total Culling Passes:: " << totalPasses << "\n";
-  cout << "Odd Points Culled:: " << oldMatch_used-match_used << "\n";
+  cout << "Noise Points Culled:: " << oldMatch_used-match_used << "\n";
   cout << "Points remaining after distance culling:: " << match_used << "\n";
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
