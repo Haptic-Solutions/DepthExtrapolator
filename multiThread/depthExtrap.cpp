@@ -11,6 +11,7 @@
 #include "depthExtrap.h"
 #include <fstream>
 #include <thread>
+#include <time.h>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -151,6 +152,7 @@ int main(int argc, char *argv[]) {
     }
     for(int x=Pix_LeftCam_Start;x<width-Xsq_wdth;x++){
         if(x!=(width/2)&&isEdge(x,y)){
+            cout << "Line: " << x << "\n";
             int PX_Match = 0;
             T_Edge_Cnt++;
             //Found an edge on left viewport, search right viewport to see if a color match is close enough.
@@ -160,7 +162,9 @@ int main(int argc, char *argv[]) {
             int lowest_Tx=0;
             int lowest_y=0;
             int multi_point=0;
+            int CPUthreads = Maxthreads;
             for(int Tx=LLX+Xsq_wdth;Tx<x+Pix_End;Tx+=CPUthreads){
+                if(Tx+CPUthreads>=width-1)CPUthreads=width-Tx-1;
                 if(!PixSkip[cord(Tx,y)]&&Tx!=(width/2)){
                     if(reduxMatch(x,Tx,y)){
                         //Found a Right-View edge, now compare colors and find the closest match.
@@ -176,11 +180,9 @@ int main(int argc, char *argv[]) {
                             gridThread = new std::thread (C_gridProc::gridComp,std::ref(x),std::ref(TxThrd),std::ref(y),std::ref(PX_CPU_Match),std::ref(thrdNum));
                         }
                         /// Wait for all threads to finish.
-                        //cout << "Joining threads. \n";
-                        while(thrdRunCount!=0){}
-                        //for(int thrdNum=0;thrdNum<CPUthreads;thrdNum++){
-                        //    gridThread[thrdNum].join();
-                        //}
+                        while(thrdRunCount!=0){
+                            std::this_thread::sleep_for(std::chrono::microseconds(1));
+                        }
                         /// Once finished, find the lowest result and use it.
                         int lowestThrd = 0;
                         for(int thrdNum=0;thrdNum<CPUthreads;thrdNum++){

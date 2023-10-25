@@ -13,7 +13,7 @@
 
 bool spherical_Lens = 0;
 
-int CPUthreads = 8;
+int Maxthreads = 8;
 int edgePixSkp = 4;
 int Xsq_wdth = 5;           /// Width of block to test. times 2 then add 1
 int Ysq_wdth = 5;           /// Height of block to test. times 2 then add 1
