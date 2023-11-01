@@ -138,19 +138,19 @@ int main(int argc, char * argv[]) {
   C_Points * O_Points;
   O_Points = new C_Points[width * height];
   int Completion_Status = height / 10;
-  
-  
+
+
   int maxTD = (((Xsq_wdth * 2) + 1) * ((Ysq_wdth * 2) + 1)) * maxTotalDiff;
   double scale_dist = max_Dist / min_Dist;
   cout << "Doing points matching between channels.\nWorking: ";
   cout.clear(); ///Clear buffer.
   cout << "<          >" << "\b\b\b\b\b\b\b\b\b\b\b" << std::flush;
-  
-  
+
+
   int yLowLimit = Ysq_wdth;
   int yHighLimit = height - Ysq_wdth;
-  
-  C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc [12];
+
+  C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc();
 
   for (int y = yLowLimit; y < yHighLimit; y+=12) {
      if (y >= Completion_Status) {
@@ -172,7 +172,7 @@ int main(int argc, char * argv[]) {
     thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(edgePixSkp), std::ref(O_Points), std::ref(thNum)); thNum++;
     thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(edgePixSkp), std::ref(O_Points), std::ref(thNum)); thNum++;
 
-    
+
     NewThread1.join();
     NewThread2.join();
     NewThread3.join();
@@ -186,9 +186,8 @@ int main(int argc, char * argv[]) {
     NewThread11.join();
     NewThread12.join();
 
-        
   }
-  
+
 
   cout << "=> Completed!\n";
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
@@ -310,18 +309,28 @@ unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
 }
 
 double DegToRad(double DEG) {
-  return DEG * (M_PI / 180);
+  return DEG * (PI_aprox / 180);
 }
 
 double RadToDeg(double RAD) {
-  return RAD * (180 / M_PI);
+  return RAD * (180 / PI_aprox);
 }
 
 ///single-line point matcher
 void C_threadCalc::slpm(int Pix_LeftCam_Start,
   unsigned int width, unsigned int height, int Xsq_wdth,
   int maxTD, int Pix_Start, int Pix_End, int y,
-  int edgePixSkp, C_Points * O_Points, int threadNumber) {
+  int edgePixSkp, C_Points * O_Points, int threadNumber){
+
+  if(y+threadNumber+1 >= height-Ysq_wdth)return;
+  int* pixScore;
+  int* matchWith;
+  pixScore = new int [width];
+  matchWith = new int [width];
+  for(int i=0; i<width;i++){
+    pixScore[i] = -1;
+    matchWith[i] = 0;
+  }
   bool * PixSkip;
   y+=threadNumber;
   PixSkip = new bool[width * height];
@@ -365,7 +374,7 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       x += edgePixSkp - 1;
     }
   }
-  
+
 /// Check for better matches than what we already found and discard the ones that are worse.
     for (int x = 0; x < width; x++) {
       int Gx = matchWith[x];
@@ -410,6 +419,9 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       matchWith[LeftX] = 0;
       pixScore[LeftX] = -1;
     }
+delete[]  pixScore;
+delete[] matchWith;
+delete[] PixSkip;
 }
 
 ///Grid comparator.

@@ -10,6 +10,7 @@
 #define Z 2
 #define CordX 0
 #define CordY 1
+#define PI_aprox 3.1415926535
 
 bool spherical_Lens = 0;
 
@@ -74,7 +75,7 @@ bool isEdge(int, int);
 bool reduxMatch(int, int, int);
 
 //class C_bMatch {
-//  public: 
+//  public:
 //  int pixScore;
 //  int matchWith;
   /** Memory constructor **/
@@ -101,32 +102,13 @@ class C_Points {
   }
 };
 
-
-
 class C_threadCalc {
-  private: 
-      int* pixScore;
-      int* matchWith;
+  private:
       int gridComp(int, int, int);
       void calcPoint(int, int, int, C_Points * );
   public:
       void slpm(int, unsigned int, unsigned int, int, int, int, int, int, int, C_Points *, int);
-      /** Memory constructor **/
-    C_threadCalc(void) {
-        pixScore = new int [width];
-        matchWith = new int [width];
-        for(int i=0; i<width;i++){
-            pixScore[i] = -1;
-            matchWith[i] = 0;
-        }
-    }
-    /** Memory destructor **/
-   // ~C_threadCalc(void) {
-  //      delete[] pixScore;
-  //      delete[] matchWith;
-  //  }
 };
-
 
 class C_pTable {
   public:
@@ -143,7 +125,7 @@ class C_pTable {
 };
 
 class C_Chroma {
-  public: 
+  public:
       unsigned int * chnl;
   /** Memory constructor **/
   C_Chroma(void) {
