@@ -20,7 +20,9 @@
 using namespace std;
 
 int main(int argc, char * argv[]) {
-  std::cout << "\x1B[2J\x1B[H"; /// Clear screen.
+  #ifdef LINUX_BUILD
+  std::cout << "\x1B[2J\x1B[H"; /// Clear screen on linux.
+  #endif
   //Use lodepng to open the specified PNG file.
   //Using boilerplate code example listed in the header file. Thanks lode!
   //load and decode left image.
@@ -346,6 +348,8 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       int lowest_Tx = 0;
       int lowest_y = 0;
       int multi_point = 0;
+/* ! This loop right here is what takes the most time. !*/
+/*   If it can be streamlined, hardware accelerated via GPU or other means, or otherwise replaced with a more efficient algo, it would greatly speed up performance. */
       for (int Tx = LLX + Xsq_wdth; Tx < x + Pix_End; Tx++) {
         if (!PixSkip[cord(Tx, y)] && Tx != (width / 2)) {
           if (reduxMatch(x, Tx, y)) {
