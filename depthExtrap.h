@@ -14,10 +14,11 @@
 
 bool spherical_Lens = 0;
 
-int edgePixSkp = 4;
-int Xsq_wdth = 5; /// Width of block to test. times 2 then add 1
-int Ysq_wdth = 5; /// Height of block to test. times 2 then add 1
-int threashold = 15; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+int edgePixSkp = 2;
+int edgePixDist = 3;
+int Xsq_wdth = 2; /// Width of block to test. times 2 then add 1
+int Ysq_wdth = 0; /// Height of block to test. times 2 then add 1
+int threashold = 20; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
 int MaxCenterDiff = 20; /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
 int MaxColorDiff = 30; /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
 int maxTotalDiff = 40; /// Max overall difference. 0-255 Smaller numbers == closer match.
@@ -32,7 +33,7 @@ int MaxThreads = 8;
 ///Distance is in mm.
 ///Angles are in Radians.
 double Cam_Dist = 50.8; //50.8 :: 120.65mm + 114.3 ??= 234.95 :: other images 228.6mm
-double min_Dist = 200; //0.20 meters: adjacent angle.
+double min_Dist = 500; //0.20 meters: adjacent angle.
 double max_Dist = 6000; //2 meters: opposite angle.
 double X_FOV = 0;
 double Y_FOV = 0;
@@ -107,7 +108,7 @@ class C_threadCalc {
       int gridComp(int, int, int);
       void calcPoint(int, int, int, C_Points * );
   public:
-      void slpm(int, unsigned int, unsigned int, int, int, int, int, int, int, C_Points *, int);
+      void slpm(int, unsigned int, unsigned int, int, int, int, int, int, C_Points *, int);
 };
 
 class C_pTable {
