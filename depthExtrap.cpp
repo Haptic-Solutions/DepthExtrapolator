@@ -209,7 +209,7 @@ int main(int argc, char * argv[]) {
   int lastMatchUsed = 0;
   int totalPasses = 0;
   int oldMatch_used = match_used;
-  if (!CullingPasses) CullingPasses = 10000;
+  if (CullingPasses==0) CullingPasses = 10000;
   /// Cull lonely points. IE: Noise.
   for (int CPasses = 0; CPasses < CullingPasses; CPasses++) {
     match_used = 0;
@@ -298,14 +298,14 @@ int main(int argc, char * argv[]) {
   return 0;
 }
 
-unsigned int ST_cord(unsigned int x, unsigned int y) {
-  unsigned int output = (y * width) + x;
+int ST_cord(int x,int y) {
+  int output = (y * width) + x;
   if (output >= width * height) return 0;
   else return output;
 }
 
-unsigned int ST_COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
-  unsigned int output = (y * (width * 3)) + ((x * 3) + c);
+int ST_COLOR_cord(int x,int y,int c) {
+  int output = (y * (width * 3)) + ((x * 3) + c);
   if (output >= width * height * 3) return 0;
   else return output;
 }
@@ -322,21 +322,9 @@ float RadToDeg(float RAD) {
 /** Functions below this line should be members of C_threadCalc **/
 /** All functions USED below this line should either be members of C_threadCalc, or be objects that can be distinguished between threads. **/
 
-unsigned int C_threadCalc::cord(unsigned int x, unsigned int y) {
-  unsigned int output = (y * width) + x;
-  if (output >= width * height) return 0;
-  else return output;
-}
-
-unsigned int C_threadCalc::COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
-  unsigned int output = (y * (width * 3)) + ((x * 3) + c);
-  if (output >= width * height * 3) return 0;
-  else return output;
-}
-
 ///single-line point matcher
 void C_threadCalc::slpm(int Pix_LeftCam_Start,
-  unsigned int width, unsigned int height, int Xsq_wdth,
+  int width, int height, int Xsq_wdth,
   int maxTD, int Pix_Start, int Pix_End, int y,
   C_Points * O_Points, int threadNumber){
 /******************************************************************/
@@ -366,8 +354,8 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       int lowest_y = 0;
       int multi_point = 0;
       for (int Tx = LLX + Xsq_wdth; Tx < x + Pix_End; Tx++) {
-        if (!PixSkip[cord(Tx, y)]) {
-          if (reduxMatch(x, Tx, y)) {
+        if (PixSkip[cord(Tx, y)]==0) {
+          if (reduxMatch(x, Tx, y)>0) {
             //Found a Right-View edge, now compare colors and find the closest match.
             ///Test square of pixels.
             PX_Match = gridComp(x, Tx, y); ///Get best match.
@@ -481,7 +469,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y) {
         if (Diff_Test < 0) Diff_Test *= -1.0f; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
-        if (!Xadj && !Yadj && Diff_Test > MaxCenterDiff) {
+        if (Xadj==0 && Yadj==0 && Diff_Test > MaxCenterDiff) {
           MaxDiffCenters++;
           PX_Match = -1; //Mark it to skip, then break from loop.
           break;
@@ -553,4 +541,16 @@ bool C_threadCalc::isEdge(int x, int y) {
     if (threashold < Etest) return true;
   }
   return false;
+}
+
+int C_threadCalc::cord(int x,int y) {
+  int output = (y * width) + x;
+  if (output >= width * height) return 0;
+  else return output;
+}
+
+int C_threadCalc::COLOR_cord(int x,int y,int c) {
+  int output = (y * (width * 3)) + ((x * 3) + c);
+  if (output >= width * height * 3) return 0;
+  else return output;
 }

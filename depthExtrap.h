@@ -28,7 +28,6 @@ float MinCullDist = 0.05f; /// Minimum Cull Distance in meters to count towards 
 int MinCullCount = 15; /// Minimum number of nearby points to not cull.
 int TestGrid = 5; /// Size of Culling test grid. times 2 then add 1
 int CullingPasses = 0; /// Number of passes to make for distance culling. Set to 0 for AUTO.
-int MaxThreads = 8;
 
 ///Distance is in mm.
 ///Angles are in Radians.
@@ -42,14 +41,6 @@ float X_Size = 23.5f; //test parameter. NIKON D3300 with 18-140mm lens.
 float Y_Size = 15.6f; //test parameter. NIKON D3300 with 18-140mm lens.
 
 unsigned int width, height, Rwidth, Rheight;
-unsigned char * edgeOutLEFT;
-unsigned char * edgeOutRIGHT;
-unsigned char * reduxOutLEFT;
-unsigned char * reduxOutRIGHT;
-unsigned char * reduxMatchLEFT;
-unsigned char * reduxMatchRIGHT;
-unsigned char * pixelTMP;
-float * Sets;
 float * X_Angle;
 float * Y_Angle;
 float dimScale = 0.0f;
@@ -70,21 +61,10 @@ std::vector < unsigned char > Rimage;
 void lineThread();
 float DegToRad(float);
 float RadToDeg(float);
-unsigned int ST_cord(unsigned int, unsigned int);
-unsigned int ST_COLOR_cord(unsigned int, unsigned int, unsigned int);
+int ST_cord(int, int);
+int ST_COLOR_cord(int, int, int);
 
-//class C_bMatch {
-//  public:
-//  int pixScore;
-//  int matchWith;
-  /** Memory constructor **/
-//  C_bMatch(void) {
-//    pixScore = -1;
-//    matchWith = 0;
-//  }
-//};
-
-class C_Points {
+struct C_Points {
   public:
   float * Cord;
   int PassNum;
@@ -107,32 +87,19 @@ class C_threadCalc {
       void calcPoint(int, int, int, C_Points * );
       bool isEdge(int, int);
       bool reduxMatch(int, int, int);
-      unsigned int cord(unsigned int, unsigned int);
-      unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
+      int cord(int, int);
+      int COLOR_cord(int, int, int);
   public:
-      void slpm(int, unsigned int, unsigned int, int, int, int, int, int, C_Points *, int);
+      void slpm(int, int, int, int, int, int, int, int, C_Points *, int);
 };
 
-class C_pTable {
-  public:
-    unsigned int * PTable;
-  /** Memory constructor **/
-  C_pTable(void) {
-    PTable = new unsigned int[2];
-    PTable[0] = 0;
-    PTable[1] = 0;
-  }
-  ~C_pTable(void) {
-    delete[] PTable;
-  }
-};
 
-class C_Chroma {
+struct C_Chroma {
   public:
-      unsigned int * chnl;
+      int * chnl;
   /** Memory constructor **/
   C_Chroma(void) {
-    chnl = new unsigned int[3];
+    chnl = new int[3];
     chnl[0] = 0;
     chnl[1] = 0;
     chnl[2] = 0;
