@@ -45,7 +45,7 @@ int main(int argc, char * argv[]) {
     return 0;
   }
   if (height != Rheight) {
-    cout << "Width of images does not match. Stopping. \n";
+    cout << "Height of images does not match. Stopping. \n";
     return 0;
   }
   cout << "Got Files. Processing. \n";
@@ -436,9 +436,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y) {
       /// Test each color channel.
       for (int c = 0; c < 3; c++) {
         int Diff_Test = Limage[COLOR_cord(x+Xadj, y, c)] - Rimage[COLOR_cord(Tx+Xadj, y, c)];
-        if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
-        ///Cull if center pixel is out of range and skip to next pixel.
-        ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
+        if (Diff_Test < 0) Diff_Test *= -1.0f; //Get absolute value of difference.
         if (Diff_Test > MaxColorDiff) {
           MaxDiffBlocks++;
           PX_Match = -1; //Mark it to skip, then break from loop.
@@ -465,7 +463,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y) {
         if (LCenterContrast > minBKcontrast) LctstCount++;
 
         int Diff_Test = Limage[COLOR_cord(x + Xadj, y + Yadj, c)] - Rimage[COLOR_cord(Tx + Xadj, y + Yadj, c)];
-        if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
+        if (Diff_Test < 0) Diff_Test *= -1.0f; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
         if (!Xadj && !Yadj && Diff_Test > MaxCenterDiff) {
