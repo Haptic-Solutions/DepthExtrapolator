@@ -51,31 +51,31 @@ int main(int argc, char * argv[]) {
   cout << "Got Files. Processing. \n";
   cout << "Pre-calculating parameters. \n";
   ///Pr-Calculate FOV based on camera parameters if it wasn't provided.
-  X_Angle = new double[width];
-  Y_Angle = new double[height];
-  double F_width = width; //Convert to floating point number.
-  double F_height = height; //Convert to floating point number.
-  double F_i;
+  X_Angle = new float[width];
+  Y_Angle = new float[height];
+  float F_width = static_cast<float> (width); //Convert to floating point number.
+  float F_height = static_cast<float> (height); //Convert to floating point number.
+  float F_i;
   ///Pre-calculate all XY angles into two arrays.
   // Need Image resolution, and XY FOV or Sensor size + Lens focal length.
   // FOV = 2 arctan(sensorSize/(2f))
   ///X angle.
   for (int i = 0; i < width; i++) {
     F_i = i; //Convert to floating point number.
-    double X_Num = X_Size * ((F_i / F_width) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
-    double foc_length = sqrt(pow(lens_foc, 2) + pow(X_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
+    float X_Num = X_Size * ((F_i / F_width) - 0.5f); ///Get scan offset of each pixel with 0 in the middle.
+    float foc_length = sqrt(pow(lens_foc, 2) + pow(X_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
-    X_Angle[i] = DegToRad(90) + atan(X_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
+    X_Angle[i] = DegToRad(90.0f) + atan(X_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
     X_FOV = X_Angle[width - 1] - X_Angle[0]; ///Get absolute FOV.
     //X_FOV = atan(X_Size/(lens_foc/2)); ///Get absolute FOV.
   }
   ///Y angle.
   for (int i = 0; i < height; i++) {
     F_i = i; //Convert to floating point number.
-    double Y_Num = Y_Size * ((F_i / F_height) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
-    double foc_length = sqrt(pow(lens_foc, 2) + pow(Y_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
+    float Y_Num = Y_Size * ((F_i / F_height) - 0.5f); ///Get scan offset of each pixel with 0 in the middle.
+    float foc_length = sqrt(pow(lens_foc, 2) + pow(Y_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
-    Y_Angle[i] = DegToRad(90) + atan(Y_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
+    Y_Angle[i] = DegToRad(90.0f) + atan(Y_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
     Y_FOV = Y_Angle[height - 1] - Y_Angle[0]; ///Get absolute FOV.
     //Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
   }
@@ -97,8 +97,8 @@ int main(int argc, char * argv[]) {
 
   ///Pre-Calculate min/max scanning angles based on min/max configured distances.
   //This is done assuming a right triangle with the opposite side in the center between both cameras.
-  double Min_Dist_Ang = atan(min_Dist / Cam_Dist);
-  double Max_Dist_Ang = atan(max_Dist / Cam_Dist);
+  float Min_Dist_Ang = atan(min_Dist / Cam_Dist);
+  float Max_Dist_Ang = atan(max_Dist / Cam_Dist);
 
   cout << "Min_Dist_Ang:: " << RadToDeg(Min_Dist_Ang) << " deg\n";
   cout << "Max_Dist_Ang:: " << RadToDeg(Max_Dist_Ang) << " deg\n";
@@ -143,7 +143,7 @@ int main(int argc, char * argv[]) {
 
 
   int maxTD = (((Xsq_wdth * 2) + 1) * ((Ysq_wdth * 2) + 1)) * maxTotalDiff;
-  double scale_dist = max_Dist / min_Dist;
+  float scale_dist = max_Dist / min_Dist;
   cout << "Doing points matching between channels.\nWorking: ";
   cout.clear(); ///Clear buffer.
   cout << "<          >" << "\b\b\b\b\b\b\b\b\b\b\b" << std::flush;
@@ -310,11 +310,11 @@ unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
   else return output;
 }
 
-double DegToRad(double DEG) {
+float DegToRad(float DEG) {
   return DEG * (PI_aprox / 180);
 }
 
-double RadToDeg(double RAD) {
+float RadToDeg(float RAD) {
   return RAD * (180 / PI_aprox);
 }
 
@@ -495,12 +495,12 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   ///Found a point match. Now compute Z distance.
   /// We know that Z=0 for the first left and right points and that X=+-C_Dist/2
   /// Get slopes of rays using pre-computed angle data.
-  double LSlp = tan(X_Angle[x]); ///Get angle data for the left view.
-  double RSlp = tan(X_Angle[Tx]); ///Get angle data for the right view.
-  double YSlp = tan(Y_Angle[y]); ///Might as well compute the Y axis while we are here.
+  float LSlp = tan(X_Angle[x]); ///Get angle data for the left view.
+  float RSlp = tan(X_Angle[Tx]); ///Get angle data for the right view.
+  float YSlp = tan(Y_Angle[y]); ///Might as well compute the Y axis while we are here.
   /// Get second set of points via the X=0 Z intercept
-  double LShft = (Cam_Dist / 2) * LSlp; ///Calculate the Z intercept for left view.
-  double RShft = (Cam_Dist / -2) * RSlp; ///Calculate the Z intercept for right view.
+  float LShft = (Cam_Dist / 2.0f) * LSlp; ///Calculate the Z intercept for left view.
+  float RShft = (Cam_Dist / -2.0f) * RSlp; ///Calculate the Z intercept for right view.
   /// Now the linear equation for each ray is Z=iSlp*X+iShft where 'i' is either L or R
   /// RSlp*X+RShft=LSlp*X+LShft
   /// We can subtract the Right view slope from both equations leaving X only on the Left equation.
@@ -509,13 +509,13 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   /// Rearrange that to get the X cord of the intercept.
   /// RShft-LShft=LSlp*X
   /// (RShft-LShft)/LSlp=X
-  double IX = (RShft - LShft) / LSlp;
+  float IX = (RShft - LShft) / LSlp;
   /// Now solve for Z using the right-side equation parameters because they haven't been modified.
-  double tmpZ = (RSlp * IX) + RShft;
+  float tmpZ = (RSlp * IX) + RShft;
   /// Now scale Y using the Z data and put all the coords into memory.
-  O_Points[cord(x, y)].Cord[X] = IX / 1000;
-  O_Points[cord(x, y)].Cord[Y] = (tmpZ / YSlp) / 1000;
-  O_Points[cord(x, y)].Cord[Z] = tmpZ / 1000;
+  O_Points[cord(x, y)].Cord[X] = IX / 1000.0f;
+  O_Points[cord(x, y)].Cord[Y] = (tmpZ / YSlp) / 1000.0f;
+  O_Points[cord(x, y)].Cord[Z] = tmpZ / 1000.0f;
   /// And now we have the Z distance of each point.
 }
 
