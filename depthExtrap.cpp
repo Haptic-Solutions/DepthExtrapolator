@@ -218,12 +218,12 @@ int main(int argc, char * argv[]) {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         cullCount = 0;
-        float Dx = O_Points[cord(x, y)].Cord[X];
-        float Dy = O_Points[cord(x, y)].Cord[Y];
-        float Dz = O_Points[cord(x, y)].Cord[Z];
+        float Dx = O_Points[ST_cord(x, y)].Cord[X];
+        float Dy = O_Points[ST_cord(x, y)].Cord[Y];
+        float Dz = O_Points[ST_cord(x, y)].Cord[Z];
         /// If point 'exists', check distance against surrounding points in a grid pattern, but
         /// only if it's PassNum is equal to the current pass. Otherwise, skip it.
-        if (O_Points[cord(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
+        if (O_Points[ST_cord(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
           int xStart = x - TestGrid;
           int xEnd = x + TestGrid;
           int yStart = y - TestGrid;
@@ -234,9 +234,9 @@ int main(int argc, char * argv[]) {
           if (yEnd > height - 1) yEnd = height - 1;
           for (int Ty = yStart; Ty < yEnd; Ty++) {
             for (int Tx = xStart; Tx < xEnd; Tx++) {
-              float Ex = O_Points[cord(Tx, Ty)].Cord[X];
-              float Ey = O_Points[cord(Tx, Ty)].Cord[Y];
-              float Ez = O_Points[cord(Tx, Ty)].Cord[Z];
+              float Ex = O_Points[ST_cord(Tx, Ty)].Cord[X];
+              float Ey = O_Points[ST_cord(Tx, Ty)].Cord[Y];
+              float Ez = O_Points[ST_cord(Tx, Ty)].Cord[Z];
               /// If point 'exists', do comparison.
               if (Ex || Ey || Ez) {
                 /// If distance is less than minimum distance the count it.
@@ -247,10 +247,10 @@ int main(int argc, char * argv[]) {
                   O_CulledPoints[f].Cord[X] = Dx;
                   O_CulledPoints[f].Cord[Y] = Dy;
                   O_CulledPoints[f].Cord[Z] = Dz;
-                  O_CulledColors[f].chnl[R] = Limage[COLOR_cord(x, y, R)];
-                  O_CulledColors[f].chnl[G] = Limage[COLOR_cord(x, y, G)];
-                  O_CulledColors[f].chnl[B] = Limage[COLOR_cord(x, y, B)];
-                  O_Points[cord(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
+                  O_CulledColors[f].chnl[R] = Limage[ST_COLOR_cord(x, y, R)];
+                  O_CulledColors[f].chnl[G] = Limage[ST_COLOR_cord(x, y, G)];
+                  O_CulledColors[f].chnl[B] = Limage[ST_COLOR_cord(x, y, B)];
+                  O_Points[ST_cord(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
                   /// We use this to only check the ones that match the same pass we are on. This
                   /// essentially marks the keepers in 'O_Points'.
                   f++;
@@ -298,24 +298,40 @@ int main(int argc, char * argv[]) {
   return 0;
 }
 
-unsigned int cord(unsigned int x, unsigned int y) {
+unsigned int ST_cord(unsigned int x, unsigned int y) {
   unsigned int output = (y * width) + x;
   if (output >= width * height) return 0;
   else return output;
 }
 
-unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
+unsigned int ST_COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
   unsigned int output = (y * (width * 3)) + ((x * 3) + c);
   if (output >= width * height * 3) return 0;
   else return output;
 }
 
 float DegToRad(float DEG) {
-  return DEG * (PI_aprox / 180);
+  return DEG * (PI_aprox / 180.0f);
 }
 
 float RadToDeg(float RAD) {
-  return RAD * (180 / PI_aprox);
+  return RAD * (180.0f / PI_aprox);
+}
+
+/*******************************************************************************************************************************************/
+/** Functions below this line should be members of C_threadCalc **/
+/** All functions USED below this line should either be members of C_threadCalc, or be objects that can be distinguished between threads. **/
+
+unsigned int C_threadCalc::cord(unsigned int x, unsigned int y) {
+  unsigned int output = (y * width) + x;
+  if (output >= width * height) return 0;
+  else return output;
+}
+
+unsigned int C_threadCalc::COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
+  unsigned int output = (y * (width * 3)) + ((x * 3) + c);
+  if (output >= width * height * 3) return 0;
+  else return output;
 }
 
 ///single-line point matcher
@@ -323,24 +339,23 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
   unsigned int width, unsigned int height, int Xsq_wdth,
   int maxTD, int Pix_Start, int Pix_End, int y,
   C_Points * O_Points, int threadNumber){
-
-  if(y+threadNumber+1 >= height-Ysq_wdth)return;
+/******************************************************************/
+  if(y+threadNumber >= height-Ysq_wdth-1)return; ///If a thread tries to process out of range data, skip it.
   int* pixScore;
   int* matchWith;
   pixScore = new int [width];
   matchWith = new int [width];
-  for(int i=0; i<width;i++){
-    pixScore[i] = -1;
-    matchWith[i] = 0;
-  }
+  //Initialize these two.
+  for(int i=0; i<width;i++){pixScore[i]=-1; matchWith[i]=0;}
   bool * PixSkip;
   y+=threadNumber;
-  PixSkip = new bool[width * height];
-  for (int i = 0; i < width * height; i++) PixSkip[i] = 0;
+  PixSkip = new bool[width*height];
+  //Initialize PixSkip
+  for (int i=0;i<width*height; i++)PixSkip[i]=0;
 /* ! This loop right here is what takes the most time. !*/
 /*   If it can be streamlined, hardware accelerated via GPU or other means, or otherwise replaced with a more efficient algo, it would greatly speed up performance. */
   for (int x=Pix_LeftCam_Start;x<(width-Xsq_wdth);x++){
-    if (isEdge(x,y)){
+    if(isEdge(x,y)){
       int PX_Match = 0;
       T_Edge_Cnt++;
       //Found an edge on left viewport, search right viewport to see if a color match is close enough.
@@ -423,7 +438,7 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       matchWith[LeftX] = 0;
       pixScore[LeftX] = -1;
     }
-delete[]  pixScore;
+delete[] pixScore;
 delete[] matchWith;
 delete[] PixSkip;
 }
@@ -517,7 +532,7 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   /// And now we have the Z distance of each point.
 }
 
-bool reduxMatch(int x, int Ex, int y) {
+bool C_threadCalc::reduxMatch(int x, int Ex, int y) {
   int tstCNT = 0;
   for (int c = 0; c < 3; c++) {
     if ((Limage[COLOR_cord(x, y, c)] & 0xC0) == (Rimage[COLOR_cord(Ex, y, c)] & 0xC0)) tstCNT++;
@@ -526,7 +541,7 @@ bool reduxMatch(int x, int Ex, int y) {
   else return false;
 }
 
-bool isEdge(int x, int y) {
+bool C_threadCalc::isEdge(int x, int y) {
   for (int c = 0; c < 3; c++) {
     int Etest = Limage[COLOR_cord(x, y, c)] - Limage[COLOR_cord(x + edgePixDist, y, c)];
     if (Etest < 0) Etest *= -1;

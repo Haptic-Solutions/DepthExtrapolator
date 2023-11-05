@@ -68,12 +68,10 @@ std::vector < unsigned char > Limage;
 std::vector < unsigned char > Rimage;
 
 void lineThread();
-unsigned int cord(unsigned int, unsigned int);
-unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
 float DegToRad(float);
 float RadToDeg(float);
-bool isEdge(int, int);
-bool reduxMatch(int, int, int);
+unsigned int ST_cord(unsigned int, unsigned int);
+unsigned int ST_COLOR_cord(unsigned int, unsigned int, unsigned int);
 
 //class C_bMatch {
 //  public:
@@ -107,6 +105,10 @@ class C_threadCalc {
   private:
       int gridComp(int, int, int);
       void calcPoint(int, int, int, C_Points * );
+      bool isEdge(int, int);
+      bool reduxMatch(int, int, int);
+      unsigned int cord(unsigned int, unsigned int);
+      unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
   public:
       void slpm(int, unsigned int, unsigned int, int, int, int, int, int, C_Points *, int);
 };
