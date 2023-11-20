@@ -10,3 +10,5 @@ To bulid, just CD to the root directory and type 'make'.
 
 
 To run, put your two images in the 'test' directory. One image name 'left.PNG' and the other name 'right.PNG' then run the main program from the root directory.
+
+All camera paramters such as lense focal length, and image sensor size/resolution must be accurate and image alignment is critical for a true output. Output is in meters. There is not auto-calibration and currently paramiters are set in code before compile time.
