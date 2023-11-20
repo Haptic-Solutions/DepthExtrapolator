@@ -1,3 +1,24 @@
+/*
+Copyright (c) <2023> <Haptic Solutions>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef depthExtrap_H
 #define depthExtrap_H
@@ -30,12 +51,11 @@ int TestGrid = 5; /// Size of Culling test grid. times 2 then add 1
 int CullingPasses = 0; /// Number of passes to make for distance culling. Set to 0 for AUTO.
 
 ///Distance is in mm.
-///Angles are in Radians.
+///Angles are in Radians for all calculations.
 float Cam_Dist = 50.8f; //50.8 :: 120.65mm + 114.3 ??= 234.95 :: other images 228.6mm
-float min_Dist = 500.0f; //0.20 meters: adjacent angle.
-float max_Dist = 6000.0f; //2 meters: opposite angle.
-float X_FOV = 0.0f;
-float Y_FOV = 0.0f;
+float min_Dist = 500.0f; //0.50 meters: adjacent angle.
+float max_Dist = 6000.0f; //6 meters: opposite angle.
+
 float lens_foc = 18.0f; //test parameter. NIKON D3300 with 18-140mm lens.
 float X_Size = 23.5f; //test parameter. NIKON D3300 with 18-140mm lens.
 float Y_Size = 15.6f; //test parameter. NIKON D3300 with 18-140mm lens.
@@ -43,6 +63,8 @@ float Y_Size = 15.6f; //test parameter. NIKON D3300 with 18-140mm lens.
 unsigned int width, height, Rwidth, Rheight;
 float * X_Angle;
 float * Y_Angle;
+float X_FOV = 0.0f;         /// Leave at 0
+float Y_FOV = 0.0f;         /// Leave at 0
 float dimScale = 0.0f;
 int MaxDiffCenters = 0;
 int MaxDiffBlocks = 0;
