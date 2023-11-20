@@ -6,7 +6,7 @@ Multi-threaded for speed, but runs on CPU only.
 Currently no command-line paramters. Must be recompiled to change settings.
 
 
-To bulid, just CD to the root directory and type 'make'.
+To bulid, just CD to the root directory and type 'make'. You may need to 'make clean' first.
 
 
 To run, put your two images in the 'test' directory. One image name 'left.PNG' and the other name 'right.PNG' then run the main program from the root directory.
