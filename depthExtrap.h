@@ -56,9 +56,9 @@ float Cam_Dist = 50.8f; //50.8 :: 120.65mm + 114.3 ??= 234.95 :: other images 22
 float min_Dist = 500.0f; //0.50 meters: adjacent angle.
 float max_Dist = 6000.0f; //6 meters: opposite angle.
 
-float lens_foc = 18.0f; //test parameter. NIKON D3300 with 18-140mm lens.
-float X_Size = 23.5f; //test parameter. NIKON D3300 with 18-140mm lens.
-float Y_Size = 15.6f; //test parameter. NIKON D3300 with 18-140mm lens.
+float lens_foc = 2.8f; //test parameter. NIKON D3300 with 18-140mm lens.
+float X_Size = 3.896f; //test parameter. NIKON D3300 with 18-140mm lens, X = 23.5.
+float Y_Size = 2.453f; //test parameter. NIKON D3300 with 18-140mm lens Y = 15.6.
 
 unsigned int width, height, Rwidth, Rheight;
 float * X_Angle;
