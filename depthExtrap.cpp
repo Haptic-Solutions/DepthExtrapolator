@@ -69,15 +69,16 @@ int main(int argc, char * argv[]) {
     cout << "Height of images does not match. Stopping. \n";
     return 0;
   }
-  cout << "Got Files. Processing. \n";
+  cout << "Got Files. \n";
   cout << "Pre-calculating parameters. \n";
-  ///Pr-Calculate FOV based on camera parameters if it wasn't provided.
+  ///Pr-Calculate FOV based on camera parameters provided.
   X_Angle = new float[width];
   Y_Angle = new float[height];
   float F_width = static_cast<float> (width); //Convert to floating point number.
   float F_height = static_cast<float> (height); //Convert to floating point number.
-  float F_i;
-  ///Pre-calculate all XY angles into two arrays.
+  float F_i=0;
+  ///Pre-calculate all XY angles into two lookup tables.
+  ///This provides us an easy way to get angles from points on the image array.
   // Need Image resolution, and XY FOV or Sensor size + Lens focal length.
   // FOV = 2 arctan(sensorSize/(2f))
   ///X angle.

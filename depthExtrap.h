@@ -35,11 +35,14 @@ SOFTWARE.
 
 bool spherical_Lens = 0;
 
-int edgePixSkp = 2;
-int edgePixDist = 3;
-int Xsq_wdth = 2; /// Width of block to test. times 2 then add 1
+int edgePixSkp = 1;
+int edgePixDist = 1;
+//int edgePixSkp = 4;
+//int edgePixDist = 4;
+int Xsq_wdth = 4; /// Width of block to test. times 2 then add 1
 int Ysq_wdth = 0; /// Height of block to test. times 2 then add 1
-int threashold = 20; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+int threashold = 5; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+//int threashold = 20;
 int MaxCenterDiff = 20; /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
 int MaxColorDiff = 30; /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
 int maxTotalDiff = 40; /// Max overall difference. 0-255 Smaller numbers == closer match.
@@ -53,12 +56,18 @@ int CullingPasses = 0; /// Number of passes to make for distance culling. Set to
 ///Distance is in mm.
 ///Angles are in Radians for all calculations.
 float Cam_Dist = 50.8f; //50.8 :: 120.65mm + 114.3 ??= 234.95 :: other images 228.6mm
-float min_Dist = 500.0f; //0.50 meters: adjacent angle.
+float min_Dist = 100.0f; //0.50 meters: adjacent angle.
 float max_Dist = 6000.0f; //6 meters: opposite angle.
 
-float lens_foc = 2.8f; //test parameter. NIKON D3300 with 18-140mm lens.
-float X_Size = 3.896f; //test parameter. NIKON D3300 with 18-140mm lens, X = 23.5.
-float Y_Size = 2.453f; //test parameter. NIKON D3300 with 18-140mm lens Y = 15.6.
+///OC9281
+//float lens_foc = 2.8f; //test parameter. NIKON D3300 with 18-140mm lens.
+//float X_Size = 3.896f; //test parameter. NIKON D3300 with 18-140mm lens, X = 23.5.
+//float Y_Size = 2.453f; //test parameter. NIKON D3300 with 18-140mm lens Y = 15.6.
+
+///OC7251
+float lens_foc = 2.8f;
+float X_Size = 1.968f;
+float Y_Size = 1.488f;
 
 unsigned int width, height, Rwidth, Rheight;
 float * X_Angle;
