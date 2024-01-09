@@ -154,6 +154,7 @@ int main(int argc, char * argv[]) {
     for(int ShiftTest=-Vert_Pix_Test;ShiftTest<Vert_Pix_Test;ShiftTest++){
         int RightY = y + ShiftTest;
         int thNum = 0;
+    ///Test 12 lines at the same time.
     thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
     thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
     thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;

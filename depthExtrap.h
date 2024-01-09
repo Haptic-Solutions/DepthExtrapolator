@@ -26,7 +26,7 @@ int minBKcontrast = 2; /// Minimum contrast between center pixel and surrounding
 int MinCtstCount = 1; /// Number of pixels that need minimum contrast to center pixel.
 float MinCullDist = 0.05; /// Minimum Cull Distance in meters to count towards MinCullCount.
 int MinCullCount = 15; /// Minimum number of nearby points to not cull.
-int TestGrid = 5; /// Size of Culling test grid. times 2 then add 1
+int TestGrid = 5;       /// Size of Culling test grid. times 2 then add 1
 int CullingPasses = 0; /// Number of passes to make for distance culling. Set to 0 for AUTO.
 int MaxThreads = 8;  ///NOT IMPLEMENTED
 
