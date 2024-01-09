@@ -23,17 +23,19 @@ int main(int argc, char * argv[]) {
   #ifdef LINUX_BUILD
   std::cout << "\x1B[2J\x1B[H"; /// Clear screen on linux.
   #endif
+  //Get command ARGs
+  if(GetArgs(argc, argv))return 0;
   //Use lodepng to open the specified PNG file.
   //Using boilerplate code example listed in the header file. Thanks lode!
   //load and decode left image.
-  unsigned error = lodepng::decode(Limage, width, height, "test/LEFT.png", LCT_RGB, 8);
+  unsigned error = lodepng::decode(Limage, width, height, Lfilename, LCT_RGB, 8);
   //if there's an error, display it
   if (error) {
     std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
     return 0;
   }
 
-  error = lodepng::decode(Rimage, Rwidth, Rheight, "test/RIGHT.png", LCT_RGB, 8);
+  error = lodepng::decode(Rimage, Rwidth, Rheight, Rfilename, LCT_RGB, 8);
   //if there's an error, display it
   if (error) {
     std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -330,7 +332,7 @@ int main(int argc, char * argv[]) {
   ///Now convert the points to a readable file.
   cout << "Writing output PLY file. \n";
   ofstream Pfile;
-  Pfile.open("./cloud.ply");
+  Pfile.open(Ofilename);
   Pfile << PLYheader_Start[0] << match_used << "\n";
   Pfile << PLYheader_End[0];
   int Fout_Count = 0;
@@ -594,4 +596,91 @@ bool isEdge(int x, int y) {
     if (threashold < Etest) return true;
   }
   return false;
+}
+
+int GetArgs(int argc, char **argv){
+float argNumber = 0;
+  int gotLFile = 1;
+  int gotRFile = 1;
+  int gotOFile = 1;
+  for(int i=1;i<argc;i++){
+    if(argv[i][0]=='-'){
+        if(argv[i][1]!='L' && argv[i][1]!='R' && argv[i][1]!='A' &&
+           argv[i][1]!='h' && argv[i][1]!='O'){
+            std::stringstream wasd(&argv[i][3]);
+            wasd >> argNumber;
+        }
+        switch (argv[i][1]){
+            case 'L':
+                Lfilename=&argv[i][3];
+                gotLFile = 0;
+                break;
+            case 'R':
+                Rfilename=&argv[i][3];
+                gotRFile = 0;
+                break;
+            case 'O':
+                Ofilename=&argv[i][3];
+                gotOFile = 0;
+                break;
+            case 'A':
+                Auto_Vert_Align = false;
+                break;
+            case 'h':
+                cout << helpText[0];
+                return 1;
+                break;
+            case 'I':
+                if(argNumber>=1&&argNumber<=1000)Cam_Dist=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 1 - 1000\n"; return 1;}
+                break;
+            case 'F':
+                if(argNumber>=0&&argNumber<=1000)lens_foc=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 1000\n"; return 1;}
+                break;
+            case 'x':
+                if(argNumber>=0&&argNumber<=100)X_Size=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 100\n"; return 1;}
+                break;
+            case 'y':
+                if(argNumber>=0&&argNumber<=100)Y_Size=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 100\n"; return 1;}
+                break;
+            case 'm':
+                if(argNumber>=0&&argNumber<=100000)min_Dist=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 100000\n"; return 1;}
+                break;
+            case 'M':
+                if(argNumber>=0&&argNumber<=1000000)max_Dist=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 1000000\n"; return 1;}
+                break;
+            case 'S':
+                if(argNumber>=-1000&&argNumber<=1000)Vert_Pix_Align=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit -1000 - 1000\n"; return 1;}
+                break;
+            case 'T':
+                if(argNumber>=0&&argNumber<=1000)Vert_Pix_Test=argNumber;
+                else {cout << "\nArgument Value Out Of Range For: " << &argv[i][0] << ", limit 0 - 1000\n"; return 1;}
+                break;
+        }
+    }
+  }
+  if(gotLFile && gotRFile){
+    cout << "No input filenames given. Using './left.png' and './right.png' \n";
+    Lfilename = "./left.png";
+    Rfilename = "./right.png";
+  }
+  else if(gotLFile){
+    cout << "Please give Left Image filename using '-L' option, or -h for help text.\n";
+  return 1;
+  }
+  else if(gotRFile){
+    cout << "Please give Right Image filename using '-R' option, or -h for help text.\n";
+  return 1;
+  }
+  if(gotOFile){
+    cout << "No output filename given. Using './cloud.ply' \n";
+    Ofilename = "./cloud.ply";
+  }
+  return 0;
 }

@@ -66,10 +66,14 @@ int matches_discarded = 0;
 int match_count = 0;
 int T_Edge_Cnt = 0;
 int final_multi_point = 0;
+const char* Lfilename;
+const char* Rfilename;
+const char* Ofilename;
 
 std::vector < unsigned char > Limage;
 std::vector < unsigned char > Rimage;
 
+int GetArgs(int, char **);
 void lineThread();
 unsigned int cord(unsigned int, unsigned int);
 unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
@@ -158,5 +162,32 @@ const char * PLYheader_End[] {
   "property uchar blue\n"
   "end_header\n"
 };
+
+
+const char *helpText[]{
+"\nThis program is provided without any warranty.\n"
+"Copyright: Haptic Solutions, January 2024 \n"
+"\n"
+"-h :: This Help Text.\n"
+"\nInput Options: \n"
+"-L :: Left Image Input Filename. Default: './left.png'\n"
+"-R :: Right Image Input Filename. Default: './right.png'\n"
+"\nCamera Parameters: \n"
+"-I :: IPD distance of cameras. Default: 50.8mm or 2 Inches \n"
+"-F :: Focal length in mm of camera lenses. Default: 18mm\n"
+"-x :: Image sensor horizontal size in mm. Default: 23.5mm\n"
+"-y :: Image sensor vertical size in mm. Default: 15.6\n"
+"\nPhysical environment properties: \n"
+"-m :: Minimum distance from cameras to cull points. Default: 500mm\n"
+"-M :: Maximum distance from cameras to cull points. Default: 6000mm\n"
+"\nImage properties: \n"
+"-S :: Image alignment shift. Overridden by auto-align if enabled. Default: 0 Lines\n"
+"-A :: Disable auto vertical alignment. Default: Enabled\n"
+"-T :: Auto align test limits. Default: +-20 Lines\n"
+"\nOutput Options: \n"
+"-O :: Points cloud output filename. Default: './cloud.ply'\n"
+"\n"
+};
+
 
 #endif
