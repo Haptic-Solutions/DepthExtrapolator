@@ -1,24 +1,3 @@
-/*
-Copyright (c) <2023> <Haptic Solutions>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
 
 #include "lodepng/lodepng.h"
  ///Windows Stuff
@@ -66,38 +45,37 @@ int main(int argc, char * argv[]) {
     return 0;
   }
   if (height != Rheight) {
-    cout << "Height of images does not match. Stopping. \n";
+    cout << "Width of images does not match. Stopping. \n";
     return 0;
   }
-  cout << "Got Files. \n";
+  cout << "Got Files. Processing. \n";
   cout << "Pre-calculating parameters. \n";
-  ///Pr-Calculate FOV based on camera parameters provided.
-  X_Angle = new float[width];
-  Y_Angle = new float[height];
-  float F_width = static_cast<float> (width); //Convert to floating point number.
-  float F_height = static_cast<float> (height); //Convert to floating point number.
-  float F_i=0;
-  ///Pre-calculate all XY angles into two lookup tables.
-  ///This provides us an easy way to get angles from points on the image array.
+  ///Pr-Calculate FOV based on camera parameters if it wasn't provided.
+  X_Angle = new double[width];
+  Y_Angle = new double[height];
+  double F_width = width; //Convert to floating point number.
+  double F_height = height; //Convert to floating point number.
+  double F_i;
+  ///Pre-calculate all XY angles into two arrays.
   // Need Image resolution, and XY FOV or Sensor size + Lens focal length.
   // FOV = 2 arctan(sensorSize/(2f))
   ///X angle.
   for (int i = 0; i < width; i++) {
     F_i = i; //Convert to floating point number.
-    float X_Num = X_Size * ((F_i / F_width) - 0.5f); ///Get scan offset of each pixel with 0 in the middle.
-    float foc_length = sqrt(pow(lens_foc, 2) + pow(X_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
+    double X_Num = X_Size * ((F_i / F_width) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
+    double foc_length = sqrt(pow(lens_foc, 2) + pow(X_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
-    X_Angle[i] = DegToRad(90.0f) + atan(X_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
+    X_Angle[i] = DegToRad(90) + atan(X_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
     X_FOV = X_Angle[width - 1] - X_Angle[0]; ///Get absolute FOV.
     //X_FOV = atan(X_Size/(lens_foc/2)); ///Get absolute FOV.
   }
   ///Y angle.
   for (int i = 0; i < height; i++) {
     F_i = i; //Convert to floating point number.
-    float Y_Num = Y_Size * ((F_i / F_height) - 0.5f); ///Get scan offset of each pixel with 0 in the middle.
-    float foc_length = sqrt(pow(lens_foc, 2) + pow(Y_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
+    double Y_Num = Y_Size * ((F_i / F_height) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
+    double foc_length = sqrt(pow(lens_foc, 2) + pow(Y_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
-    Y_Angle[i] = DegToRad(90.0f) + atan(Y_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
+    Y_Angle[i] = DegToRad(90) + atan(Y_Num / foc_length); ///Get view angle of each pixel shifted so center is 90deg.
     Y_FOV = Y_Angle[height - 1] - Y_Angle[0]; ///Get absolute FOV.
     //Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
   }
@@ -119,8 +97,8 @@ int main(int argc, char * argv[]) {
 
   ///Pre-Calculate min/max scanning angles based on min/max configured distances.
   //This is done assuming a right triangle with the opposite side in the center between both cameras.
-  float Min_Dist_Ang = atan(min_Dist / Cam_Dist);
-  float Max_Dist_Ang = atan(max_Dist / Cam_Dist);
+  double Min_Dist_Ang = atan(min_Dist / Cam_Dist);
+  double Max_Dist_Ang = atan(max_Dist / Cam_Dist);
 
   cout << "Min_Dist_Ang:: " << RadToDeg(Min_Dist_Ang) << " deg\n";
   cout << "Max_Dist_Ang:: " << RadToDeg(Max_Dist_Ang) << " deg\n";
@@ -165,36 +143,89 @@ int main(int argc, char * argv[]) {
 
 
   int maxTD = (((Xsq_wdth * 2) + 1) * ((Ysq_wdth * 2) + 1)) * maxTotalDiff;
-  float scale_dist = max_Dist / min_Dist;
+  double scale_dist = max_Dist / min_Dist;
+
+  C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc();
+  if(Auto_Vert_Align){
+    cout << "Doing Automatic Vertical Alignment. Up to +-" << Vert_Pix_Test << " pixels. \n";
+    int y = height / 2;
+    int maxPointMatches = 0;
+    int bestShift = 0;
+    for(int ShiftTest=-Vert_Pix_Test;ShiftTest<Vert_Pix_Test;ShiftTest++){
+        int RightY = y + ShiftTest;
+        int thNum = 0;
+    thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread4 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread5 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread6 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread7 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread8 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread9 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread10 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+
+
+    NewThread1.join();
+    NewThread2.join();
+    NewThread3.join();
+    NewThread4.join();
+    NewThread5.join();
+    NewThread6.join();
+    NewThread7.join();
+    NewThread8.join();
+    NewThread9.join();
+    NewThread10.join();
+    NewThread11.join();
+    NewThread12.join();
+
+        if(match_count>maxPointMatches){
+            Vert_Pix_Align = ShiftTest;
+            maxPointMatches = match_count;
+        }
+        ///Reset everything.
+        T_Edge_Cnt = 0;
+        MaxDiffCenters = 0;
+        MaxDiffBlocks = 0;
+        LowContrastBlocks = 0;
+        match_count = 0;
+        final_multi_point = 0;
+        better_matches = 0;
+        matches_discarded = 0;
+        match_used = 0;
+    }
+  }
+  cout << "Right image shifted by " << Vert_Pix_Align << " pixels. \n";
   cout << "Doing points matching between channels.\nWorking: ";
   cout.clear(); ///Clear buffer.
   cout << "<          >" << "\b\b\b\b\b\b\b\b\b\b\b" << std::flush;
-
-
   int yLowLimit = Ysq_wdth;
   int yHighLimit = height - Ysq_wdth;
-
-  C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc();
+  if(Vert_Pix_Align>0)yHighLimit-=Vert_Pix_Align;
+  else yLowLimit-=Vert_Pix_Align;
 
   for (int y = yLowLimit; y < yHighLimit; y+=12) {
+     int RightY = y + Vert_Pix_Align;
      if (y >= Completion_Status) {
       Completion_Status += height / 10;
       cout << "=" << std::flush;
     }
     /// X processing goes here...
     int thNum = 0;
-    thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread4 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread5 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread6 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread7 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread8 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread9 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread10 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
-    thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread4 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread5 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread6 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread7 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread8 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread9 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread10 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+    thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
 
 
     NewThread1.join();
@@ -231,7 +262,7 @@ int main(int argc, char * argv[]) {
   int lastMatchUsed = 0;
   int totalPasses = 0;
   int oldMatch_used = match_used;
-  if (CullingPasses==0) CullingPasses = 10000;
+  if (!CullingPasses) CullingPasses = 10000;
   /// Cull lonely points. IE: Noise.
   for (int CPasses = 0; CPasses < CullingPasses; CPasses++) {
     match_used = 0;
@@ -240,12 +271,12 @@ int main(int argc, char * argv[]) {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         cullCount = 0;
-        float Dx = O_Points[ST_cord(x, y)].Cord[X];
-        float Dy = O_Points[ST_cord(x, y)].Cord[Y];
-        float Dz = O_Points[ST_cord(x, y)].Cord[Z];
+        float Dx = O_Points[cord(x, y)].Cord[X];
+        float Dy = O_Points[cord(x, y)].Cord[Y];
+        float Dz = O_Points[cord(x, y)].Cord[Z];
         /// If point 'exists', check distance against surrounding points in a grid pattern, but
         /// only if it's PassNum is equal to the current pass. Otherwise, skip it.
-        if (O_Points[ST_cord(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
+        if (O_Points[cord(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
           int xStart = x - TestGrid;
           int xEnd = x + TestGrid;
           int yStart = y - TestGrid;
@@ -256,9 +287,9 @@ int main(int argc, char * argv[]) {
           if (yEnd > height - 1) yEnd = height - 1;
           for (int Ty = yStart; Ty < yEnd; Ty++) {
             for (int Tx = xStart; Tx < xEnd; Tx++) {
-              float Ex = O_Points[ST_cord(Tx, Ty)].Cord[X];
-              float Ey = O_Points[ST_cord(Tx, Ty)].Cord[Y];
-              float Ez = O_Points[ST_cord(Tx, Ty)].Cord[Z];
+              float Ex = O_Points[cord(Tx, Ty)].Cord[X];
+              float Ey = O_Points[cord(Tx, Ty)].Cord[Y];
+              float Ez = O_Points[cord(Tx, Ty)].Cord[Z];
               /// If point 'exists', do comparison.
               if (Ex || Ey || Ez) {
                 /// If distance is less than minimum distance the count it.
@@ -269,10 +300,10 @@ int main(int argc, char * argv[]) {
                   O_CulledPoints[f].Cord[X] = Dx;
                   O_CulledPoints[f].Cord[Y] = Dy;
                   O_CulledPoints[f].Cord[Z] = Dz;
-                  O_CulledColors[f].chnl[R] = Limage[ST_COLOR_cord(x, y, R)];
-                  O_CulledColors[f].chnl[G] = Limage[ST_COLOR_cord(x, y, G)];
-                  O_CulledColors[f].chnl[B] = Limage[ST_COLOR_cord(x, y, B)];
-                  O_Points[ST_cord(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
+                  O_CulledColors[f].chnl[R] = Limage[COLOR_cord(x, y, R)];
+                  O_CulledColors[f].chnl[G] = Limage[COLOR_cord(x, y, G)];
+                  O_CulledColors[f].chnl[B] = Limage[COLOR_cord(x, y, B)];
+                  O_Points[cord(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
                   /// We use this to only check the ones that match the same pass we are on. This
                   /// essentially marks the keepers in 'O_Points'.
                   f++;
@@ -320,52 +351,49 @@ int main(int argc, char * argv[]) {
   return 0;
 }
 
-int ST_cord(int x,int y) {
-  int output = (y * width) + x;
+unsigned int cord(unsigned int x, unsigned int y) {
+  unsigned int output = (y * width) + x;
   if (output >= width * height) return 0;
   else return output;
 }
 
-int ST_COLOR_cord(int x,int y,int c) {
-  int output = (y * (width * 3)) + ((x * 3) + c);
+unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
+  unsigned int output = (y * (width * 3)) + ((x * 3) + c);
   if (output >= width * height * 3) return 0;
   else return output;
 }
 
-float DegToRad(float DEG) {
-  return DEG * (PI_aprox / 180.0f);
+double DegToRad(double DEG) {
+  return DEG * (PI_aprox / 180);
 }
 
-float RadToDeg(float RAD) {
-  return RAD * (180.0f / PI_aprox);
+double RadToDeg(double RAD) {
+  return RAD * (180 / PI_aprox);
 }
-
-/*******************************************************************************************************************************************/
-/** Functions below this line should be members of C_threadCalc **/
-/** All functions USED below this line should either be members of C_threadCalc, or be objects that can be distinguished between threads. **/
 
 ///single-line point matcher
 void C_threadCalc::slpm(int Pix_LeftCam_Start,
-  int width, int height, int Xsq_wdth,
-  int maxTD, int Pix_Start, int Pix_End, int y,
+  unsigned int width, unsigned int height, int Xsq_wdth,
+  int maxTD, int Pix_Start, int Pix_End, int y, int RightY,
   C_Points * O_Points, int threadNumber){
-/******************************************************************/
-  if(y+threadNumber >= height-Ysq_wdth-1)return; ///If a thread tries to process out of range data, skip it.
+
+  if(y+threadNumber+1 >= height-Ysq_wdth)return;
   int* pixScore;
   int* matchWith;
   pixScore = new int [width];
   matchWith = new int [width];
-  //Initialize these two.
-  for(int i=0; i<width;i++){pixScore[i]=-1; matchWith[i]=0;}
+  for(int i=0; i<width;i++){
+    pixScore[i] = -1;
+    matchWith[i] = 0;
+  }
   bool * PixSkip;
   y+=threadNumber;
-  PixSkip = new bool[width*height];
-  //Initialize PixSkip
-  for (int i=0;i<width*height; i++)PixSkip[i]=0;
+  PixSkip = new bool[width * height];
+  for (int i = 0; i < width * height; i++) PixSkip[i] = 0;
 /* ! This loop right here is what takes the most time. !*/
 /*   If it can be streamlined, hardware accelerated via GPU or other means, or otherwise replaced with a more efficient algo, it would greatly speed up performance. */
   for (int x=Pix_LeftCam_Start;x<(width-Xsq_wdth);x++){
-    if(isEdge(x,y)){
+    if (isEdge(x,y)){
       int PX_Match = 0;
       T_Edge_Cnt++;
       //Found an edge on left viewport, search right viewport to see if a color match is close enough.
@@ -376,11 +404,11 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       int lowest_y = 0;
       int multi_point = 0;
       for (int Tx = LLX + Xsq_wdth; Tx < x + Pix_End; Tx++) {
-        if (PixSkip[cord(Tx, y)]==0) {
-          if (reduxMatch(x, Tx, y)>0) {
+        if (!PixSkip[cord(Tx, y)]) {
+          if (reduxMatch(x, Tx, y, RightY)) {
             //Found a Right-View edge, now compare colors and find the closest match.
             ///Test square of pixels.
-            PX_Match = gridComp(x, Tx, y); ///Get best match.
+            PX_Match = gridComp(x, Tx, y, RightY); ///Get best match.
             if (PX_Match < lowest_Diff && PX_Match >= 0) {
               lowest_Diff = PX_Match;
               lowest_Tx = Tx;
@@ -448,20 +476,22 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
       matchWith[LeftX] = 0;
       pixScore[LeftX] = -1;
     }
-delete[] pixScore;
+delete[]  pixScore;
 delete[] matchWith;
 delete[] PixSkip;
 }
 
 #ifdef NOYCOMP
 ///Grid comparator.
-int C_threadCalc::gridComp(int x, int Tx, int y) {
+int C_threadCalc::gridComp(int x, int Tx, int y, int RightY) {
     int PX_Match = 0;
     for (int Xadj = -Xsq_wdth; Xadj <= Xsq_wdth; Xadj++) {
       /// Test each color channel.
       for (int c = 0; c < 3; c++) {
-        int Diff_Test = Limage[COLOR_cord(x+Xadj, y, c)] - Rimage[COLOR_cord(Tx+Xadj, y, c)];
-        if (Diff_Test < 0) Diff_Test *= -1.0f; //Get absolute value of difference.
+        int Diff_Test = Limage[COLOR_cord(x+Xadj, y, c)] - Rimage[COLOR_cord(Tx+Xadj, RightY, c)];
+        if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
+        ///Cull if center pixel is out of range and skip to next pixel.
+        ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
         if (Diff_Test > MaxColorDiff) {
           MaxDiffBlocks++;
           PX_Match = -1; //Mark it to skip, then break from loop.
@@ -475,7 +505,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y) {
 #endif
 #ifndef NOYCOMP
 ///Grid comparator.
-int C_threadCalc::gridComp(int x, int Tx, int y) {
+int C_threadCalc::gridComp(int x, int Tx, int y, int RightY) {
   int PX_Match = 0;
   int LctstCount = 0;
   for (int Yadj = -Ysq_wdth; Yadj <= Ysq_wdth; Yadj++) {
@@ -487,11 +517,11 @@ int C_threadCalc::gridComp(int x, int Tx, int y) {
         if (LCenterContrast < 0) LCenterContrast *= -1;
         if (LCenterContrast > minBKcontrast) LctstCount++;
 
-        int Diff_Test = Limage[COLOR_cord(x + Xadj, y + Yadj, c)] - Rimage[COLOR_cord(Tx + Xadj, y + Yadj, c)];
-        if (Diff_Test < 0) Diff_Test *= -1.0f; //Get absolute value of difference.
+        int Diff_Test = Limage[COLOR_cord(x + Xadj, y + Yadj, c)] - Rimage[COLOR_cord(Tx + Xadj, RightY + Yadj, c)];
+        if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
-        if (Xadj==0 && Yadj==0 && Diff_Test > MaxCenterDiff) {
+        if (!Xadj && !Yadj && Diff_Test > MaxCenterDiff) {
           MaxDiffCenters++;
           PX_Match = -1; //Mark it to skip, then break from loop.
           break;
@@ -518,12 +548,12 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   ///Found a point match. Now compute Z distance.
   /// We know that Z=0 for the first left and right points and that X=+-C_Dist/2
   /// Get slopes of rays using pre-computed angle data.
-  float LSlp = tan(X_Angle[x]); ///Get angle data for the left view.
-  float RSlp = tan(X_Angle[Tx]); ///Get angle data for the right view.
-  float YSlp = tan(Y_Angle[y]); ///Might as well compute the Y axis while we are here.
+  double LSlp = tan(X_Angle[x]); ///Get angle data for the left view.
+  double RSlp = tan(X_Angle[Tx]); ///Get angle data for the right view.
+  double YSlp = tan(Y_Angle[y]); ///Might as well compute the Y axis while we are here.
   /// Get second set of points via the X=0 Z intercept
-  float LShft = (Cam_Dist / 2.0f) * LSlp; ///Calculate the Z intercept for left view.
-  float RShft = (Cam_Dist / -2.0f) * RSlp; ///Calculate the Z intercept for right view.
+  double LShft = (Cam_Dist / 2) * LSlp; ///Calculate the Z intercept for left view.
+  double RShft = (Cam_Dist / -2) * RSlp; ///Calculate the Z intercept for right view.
   /// Now the linear equation for each ray is Z=iSlp*X+iShft where 'i' is either L or R
   /// RSlp*X+RShft=LSlp*X+LShft
   /// We can subtract the Right view slope from both equations leaving X only on the Left equation.
@@ -532,26 +562,26 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   /// Rearrange that to get the X cord of the intercept.
   /// RShft-LShft=LSlp*X
   /// (RShft-LShft)/LSlp=X
-  float IX = (RShft - LShft) / LSlp;
+  double IX = (RShft - LShft) / LSlp;
   /// Now solve for Z using the right-side equation parameters because they haven't been modified.
-  float tmpZ = (RSlp * IX) + RShft;
+  double tmpZ = (RSlp * IX) + RShft;
   /// Now scale Y using the Z data and put all the coords into memory.
-  O_Points[cord(x, y)].Cord[X] = IX / 1000.0f;
-  O_Points[cord(x, y)].Cord[Y] = (tmpZ / YSlp) / 1000.0f;
-  O_Points[cord(x, y)].Cord[Z] = tmpZ / 1000.0f;
+  O_Points[cord(x, y)].Cord[X] = IX / 1000;
+  O_Points[cord(x, y)].Cord[Y] = (tmpZ / YSlp) / 1000;
+  O_Points[cord(x, y)].Cord[Z] = tmpZ / 1000;
   /// And now we have the Z distance of each point.
 }
 
-bool C_threadCalc::reduxMatch(int x, int Ex, int y) {
+bool reduxMatch(int x, int Ex, int y, int RightY) {
   int tstCNT = 0;
   for (int c = 0; c < 3; c++) {
-    if ((Limage[COLOR_cord(x, y, c)] & 0xC0) == (Rimage[COLOR_cord(Ex, y, c)] & 0xC0)) tstCNT++;
+    if ((Limage[COLOR_cord(x, y, c)] & 0xC0) == (Rimage[COLOR_cord(Ex, RightY, c)] & 0xC0)) tstCNT++;
   }
   if (tstCNT > 2) return true;
   else return false;
 }
 
-bool C_threadCalc::isEdge(int x, int y) {
+bool isEdge(int x, int y) {
   for (int c = 0; c < 3; c++) {
     int Etest = Limage[COLOR_cord(x, y, c)] - Limage[COLOR_cord(x + edgePixDist, y, c)];
     if (Etest < 0) Etest *= -1;
@@ -563,16 +593,4 @@ bool C_threadCalc::isEdge(int x, int y) {
     if (threashold < Etest) return true;
   }
   return false;
-}
-
-int C_threadCalc::cord(int x,int y) {
-  int output = (y * width) + x;
-  if (output >= width * height) return 0;
-  else return output;
-}
-
-int C_threadCalc::COLOR_cord(int x,int y,int c) {
-  int output = (y * (width * 3)) + ((x * 3) + c);
-  if (output >= width * height * 3) return 0;
-  else return output;
 }
