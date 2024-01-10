@@ -15,7 +15,7 @@
 bool spherical_Lens = 0;
 
 int edgePixSkp = 2;     ///Number of pixels to skip after an edge has been found.
-int edgePixDist = 2;    ///Distance to compare pixels for edges.
+int edgePixDist = 5;    ///Distance to compare pixels for edges.
 int Xsq_wdth = 1; /// Width of block to test. times 2 then add 1
 int Ysq_wdth = 1; /// Height of block to test. times 2 then add 1
 int threashold = 20; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
@@ -31,6 +31,8 @@ int CullingPasses = 0; /// Number of passes to make for distance culling. Set to
 int MaxThreads = 8;  ///NOT IMPLEMENTED
 bool verbose = false;
 bool ignorVertFile = false;
+bool exComp = true;
+int RGBcompensation[3]={0,0,0};
 
 ///Distance is in mm.
 ///Angles are in Radians.
@@ -77,12 +79,10 @@ std::vector < unsigned char > Rimage;
 
 int GetArgs(int, char **);
 void lineThread();
-unsigned int cord(unsigned int, unsigned int);
-unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
+unsigned int cordST(unsigned int, unsigned int);
+unsigned int COLOR_cordST(unsigned int, unsigned int, unsigned int);
 double DegToRad(double);
 double RadToDeg(double);
-bool isEdge(int, int);
-bool reduxMatch(int, int, int, int);
 
 //class C_bMatch {
 //  public:
@@ -116,6 +116,10 @@ class C_threadCalc {
   private:
       int gridComp(int, int, int, int);
       void calcPoint(int, int, int, C_Points * );
+      bool isEdge(int, int);
+      bool reduxMatch(int, int, int, int);
+      unsigned int cord(unsigned int, unsigned int);
+      unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
   public:
       void slpm(int, unsigned int, unsigned int, int, int, int, int, int, int, C_Points *, int);
 };
@@ -174,6 +178,7 @@ const char *helpText[]{
 "\nInput Options: \n"
 "-L :: Left Image Input Filename. Default: './left.png'\n"
 "-R :: Right Image Input Filename. Default: './right.png'\n"
+"-E :: Disable auto exposure compensation. Default: Enabled\n"
 "\nCamera Parameters: \n"
 "-I :: IPD distance of cameras. Default: 50.8mm or 2 Inches \n"
 "-F :: Focal length in mm of camera lenses. Default: 18mm\n"

@@ -138,7 +138,33 @@ int main(int argc, char * argv[]) {
   cout << "Pix_Width:: " << Pix_Diff << " pix\n";
   cout << "Pix_LeftCam_Start:: " << Pix_LeftCam_Start << " pix\n";
   }
+  ///Get exposure compensation if enabled.
+  if(exComp){
+      if(verbose)cout << "Performing exposure compensation.\n";
+      double leftRGBaverage[3]={0,0,0};
+      double rightRGBaverage[3]={0,0,0};
+      for(int c=0;c<3;c++){
+          for(int x=Pix_LeftCam_Start;x<width;x++){
+            for(int y=0;y<height;y++){
+                leftRGBaverage[c] += Limage[COLOR_cordST(x, y, c)];
+            }
+          }
+          leftRGBaverage[c] /= width*height;
+      }
 
+      for(int c=0;c<3;c++){
+          for(int x=0;x<width-Pix_LeftCam_Start;x++){
+            for(int y=0;y<height;y++){
+                rightRGBaverage[c] += Rimage[COLOR_cordST(x, y, c)];
+            }
+          }
+          rightRGBaverage[c] /= width*height;
+      }
+      for(int c=0;c<3;c++)RGBcompensation[c] = leftRGBaverage[c] - rightRGBaverage[c];
+  }
+  cout << "R comp " << RGBcompensation[R];
+  cout << ", G comp " << RGBcompensation[G];
+  cout << ", B comp " << RGBcompensation[B] << "\n";
   ///Do edge matching per line using color data to match points between Left and Right views.
   C_Points * O_Points;
   O_Points = new C_Points[width * height];
@@ -267,7 +293,7 @@ int main(int argc, char * argv[]) {
 
   }
 
-if(verbose){
+  if(verbose){
   cout << "=> Completed!\n";
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
   cout << "Out of range center potential matches culled:: " << MaxDiffCenters << "\n";
@@ -279,7 +305,7 @@ if(verbose){
   cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
   cout << "Total point matches found:: " << match_used << "\n";
   cout << "Culling stray points.\n";
-}
+  }
   C_Points * O_CulledPoints;
   O_CulledPoints = new C_Points[match_used];
   C_Chroma * O_CulledColors;
@@ -296,12 +322,12 @@ if(verbose){
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         cullCount = 0;
-        float Dx = O_Points[cord(x, y)].Cord[X];
-        float Dy = O_Points[cord(x, y)].Cord[Y];
-        float Dz = O_Points[cord(x, y)].Cord[Z];
+        float Dx = O_Points[cordST(x, y)].Cord[X];
+        float Dy = O_Points[cordST(x, y)].Cord[Y];
+        float Dz = O_Points[cordST(x, y)].Cord[Z];
         /// If point 'exists', check distance against surrounding points in a grid pattern, but
         /// only if it's PassNum is equal to the current pass. Otherwise, skip it.
-        if (O_Points[cord(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
+        if (O_Points[cordST(x, y)].PassNum == CPasses && (Dx || Dy || Dz)) {
           int xStart = x - TestGrid;
           int xEnd = x + TestGrid;
           int yStart = y - TestGrid;
@@ -312,9 +338,9 @@ if(verbose){
           if (yEnd > height - 1) yEnd = height - 1;
           for (int Ty = yStart; Ty < yEnd; Ty++) {
             for (int Tx = xStart; Tx < xEnd; Tx++) {
-              float Ex = O_Points[cord(Tx, Ty)].Cord[X];
-              float Ey = O_Points[cord(Tx, Ty)].Cord[Y];
-              float Ez = O_Points[cord(Tx, Ty)].Cord[Z];
+              float Ex = O_Points[cordST(Tx, Ty)].Cord[X];
+              float Ey = O_Points[cordST(Tx, Ty)].Cord[Y];
+              float Ez = O_Points[cordST(Tx, Ty)].Cord[Z];
               /// If point 'exists', do comparison.
               if (Ex || Ey || Ez) {
                 /// If distance is less than minimum distance the count it.
@@ -325,10 +351,10 @@ if(verbose){
                   O_CulledPoints[f].Cord[X] = Dx;
                   O_CulledPoints[f].Cord[Y] = Dy;
                   O_CulledPoints[f].Cord[Z] = Dz;
-                  O_CulledColors[f].chnl[R] = Limage[COLOR_cord(x, y, R)];
-                  O_CulledColors[f].chnl[G] = Limage[COLOR_cord(x, y, G)];
-                  O_CulledColors[f].chnl[B] = Limage[COLOR_cord(x, y, B)];
-                  O_Points[cord(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
+                  O_CulledColors[f].chnl[R] = Limage[COLOR_cordST(x, y, R)];
+                  O_CulledColors[f].chnl[G] = Limage[COLOR_cordST(x, y, G)];
+                  O_CulledColors[f].chnl[B] = Limage[COLOR_cordST(x, y, B)];
+                  O_Points[cordST(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
                   /// We use this to only check the ones that match the same pass we are on. This
                   /// essentially marks the keepers in 'O_Points'.
                   f++;
@@ -378,13 +404,25 @@ if(verbose){
   return 0;
 }
 
-unsigned int cord(unsigned int x, unsigned int y) {
+unsigned int cordST(unsigned int x, unsigned int y) {
   unsigned int output = (y * width) + x;
   if (output >= width * height) return 0;
   else return output;
 }
 
-unsigned int COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
+unsigned int COLOR_cordST(unsigned int x, unsigned int y, unsigned int c) {
+  unsigned int output = (y * (width * 3)) + ((x * 3) + c);
+  if (output >= width * height * 3) return 0;
+  else return output;
+}
+
+unsigned int C_threadCalc::cord(unsigned int x, unsigned int y) {
+  unsigned int output = (y * width) + x;
+  if (output >= width * height) return 0;
+  else return output;
+}
+
+unsigned int C_threadCalc::COLOR_cord(unsigned int x, unsigned int y, unsigned int c) {
   unsigned int output = (y * (width * 3)) + ((x * 3) + c);
   if (output >= width * height * 3) return 0;
   else return output;
@@ -544,7 +582,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y, int RightY) {
         if (LCenterContrast < 0) LCenterContrast *= -1;
         if (LCenterContrast > minBKcontrast) LctstCount++;
 
-        int Diff_Test = Limage[COLOR_cord(x + Xadj, y + Yadj, c)] - Rimage[COLOR_cord(Tx + Xadj, RightY + Yadj, c)];
+        int Diff_Test = Limage[COLOR_cord(x + Xadj, y + Yadj, c)]-(Rimage[COLOR_cord(Tx + Xadj, RightY + Yadj, c)]+RGBcompensation[c]);
         if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
@@ -599,7 +637,7 @@ void C_threadCalc::calcPoint(int x, int Tx, int y, C_Points * O_Points) {
   /// And now we have the Z distance of each point.
 }
 
-bool reduxMatch(int x, int Ex, int y, int RightY) {
+bool C_threadCalc::reduxMatch(int x, int Ex, int y, int RightY) {
   int tstCNT = 0;
   for (int c = 0; c < 3; c++) {
     if ((Limage[COLOR_cord(x, y, c)] & 0xC0) == (Rimage[COLOR_cord(Ex, RightY, c)] & 0xC0)) tstCNT++;
@@ -608,7 +646,7 @@ bool reduxMatch(int x, int Ex, int y, int RightY) {
   else return false;
 }
 
-bool isEdge(int x, int y) {
+bool C_threadCalc::isEdge(int x, int y) {
   for (int c = 0; c < 3; c++) {
     int Etest = Limage[COLOR_cord(x, y, c)] - Limage[COLOR_cord(x + edgePixDist, y, c)];
     if (Etest < 0) Etest *= -1;
@@ -630,7 +668,8 @@ float argNumber = 0;
   for(int i=1;i<argc;i++){
     if(argv[i][0]=='-'){
         if(argv[i][1]!='L' && argv[i][1]!='R' && argv[i][1]!='A' &&
-           argv[i][1]!='a' && argv[i][1]!='h' && argv[i][1]!='O' && argv[i][1]!='V'){
+           argv[i][1]!='a' && argv[i][1]!='h' && argv[i][1]!='O' &&
+           argv[i][1]!='V' && argv[i][1]!='E'){
             std::stringstream wasd(&argv[i][3]);
             wasd >> argNumber;
         }
@@ -659,6 +698,9 @@ float argNumber = 0;
                 break;
             case 'V':
                 verbose = true;
+                break;
+            case 'E':
+                exComp = false;
                 break;
             case 'I':
                 if(argNumber>=1&&argNumber<=1000)Cam_Dist=argNumber;
