@@ -1,12 +1,5 @@
 
 #include "lodepng/lodepng.h"
- ///Windows Stuff
-#ifndef LINUX_BUILD
-#include "lodepng/lodepng.cpp"  //Lazy
-#include <Windows.h>
-#include <direct.h>
-#endif
-///End Windows Stuff
 #include "depthExtrap.h"
 #include <fstream>
 #include <thread>
@@ -20,9 +13,7 @@
 using namespace std;
 
 int main(int argc, char * argv[]) {
-  #ifdef LINUX_BUILD
-  std::cout << "\x1B[2J\x1B[H"; /// Clear screen on linux.
-  #endif
+  if(verbose)std::cout << "\x1B[2J\x1B[H"; /// Clear screen on linux.
   //Get command ARGs
   if(GetArgs(argc, argv))return 0;
   //Use lodepng to open the specified PNG file.
@@ -50,8 +41,10 @@ int main(int argc, char * argv[]) {
     cout << "Width of images does not match. Stopping. \n";
     return 0;
   }
+  if(verbose){
   cout << "Got Files. Processing. \n";
   cout << "Pre-calculating parameters. \n";
+  }
   ///Pr-Calculate FOV based on camera parameters if it wasn't provided.
   X_Angle = new double[width];
   Y_Angle = new double[height];
@@ -82,6 +75,7 @@ int main(int argc, char * argv[]) {
     //Y_FOV = atan(Y_Size/(lens_foc/2)); ///Get absolute FOV.
   }
 
+  if(verbose){
   cout << "First angle ------ " << RadToDeg(X_Angle[0]) << "\n";
   cout << "Middle angle -1pix " << RadToDeg(X_Angle[(width / 2) - 1]) << "\n";
   cout << "Middle angle ----- " << RadToDeg(X_Angle[width / 2]) << "\n";
@@ -96,14 +90,17 @@ int main(int argc, char * argv[]) {
   cout << "Camera Vertical Resolution:: " << height << "\n";
   cout << "Camera Horizontal FOV:: " << RadToDeg(X_FOV) << " deg\n";
   cout << "Camera Vertical FOV:: " << RadToDeg(Y_FOV) << " deg\n";
+  }
 
   ///Pre-Calculate min/max scanning angles based on min/max configured distances.
   //This is done assuming a right triangle with the opposite side in the center between both cameras.
   double Min_Dist_Ang = atan(min_Dist / Cam_Dist);
   double Max_Dist_Ang = atan(max_Dist / Cam_Dist);
 
+  if(verbose){
   cout << "Min_Dist_Ang:: " << RadToDeg(Min_Dist_Ang) << " deg\n";
   cout << "Max_Dist_Ang:: " << RadToDeg(Max_Dist_Ang) << " deg\n";
+  }
 
   ///Pre-Convert Min/Mix angles to left/right max pixels to scan.
   int Pix_Start = 0;
@@ -122,8 +119,10 @@ int main(int argc, char * argv[]) {
       break;
     }
   }
+  if(verbose){
   cout << "Pre-Pix_Start:: " << Pix_Start << " pix\n";
   cout << "Pre-Pix_End:: " << Pix_End << " pix\n";
+  }
   Pix_Diff = Pix_End - Pix_Start; //Scan Width.
   ///Scale start/end by two.
   //Pix_Start += Pix_Diff/4;      //Shift Start.
@@ -133,10 +132,12 @@ int main(int argc, char * argv[]) {
   Pix_Start -= (width / 2); //Shift Start.
   Pix_End -= (width / 2); //Shift End.
 
+  if(verbose){
   cout << "Pix_Start:: " << Pix_Start << " pix\n";
   cout << "Pix_End:: " << Pix_End << " pix\n";
   cout << "Pix_Width:: " << Pix_Diff << " pix\n";
   cout << "Pix_LeftCam_Start:: " << Pix_LeftCam_Start << " pix\n";
+  }
 
   ///Do edge matching per line using color data to match points between Left and Right views.
   C_Points * O_Points;
@@ -149,60 +150,81 @@ int main(int argc, char * argv[]) {
 
   C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc();
   if(Auto_Vert_Align){
-    cout << "Doing Automatic Vertical Alignment. Up to +-" << Vert_Pix_Test << " pixels. \n";
-    int y = height / 2;
-    int maxPointMatches = 0;
-    int bestShift = 0;
-    for(int ShiftTest=-Vert_Pix_Test;ShiftTest<Vert_Pix_Test;ShiftTest++){
-        int RightY = y + ShiftTest;
-        int thNum = 0;
-        ///Test 12 lines at the same time.
-        thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread4 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread5 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread6 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread7 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread8 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread9 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread10 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-        thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
-
-        NewThread1.join();
-        NewThread2.join();
-        NewThread3.join();
-        NewThread4.join();
-        NewThread5.join();
-        NewThread6.join();
-        NewThread7.join();
-        NewThread8.join();
-        NewThread9.join();
-        NewThread10.join();
-        NewThread11.join();
-        NewThread12.join();
-
-        if(match_count>maxPointMatches){
-            Vert_Pix_Align = ShiftTest;
-            maxPointMatches = match_count;
-        }
-        ///Reset everything.
-        T_Edge_Cnt = 0;
-        MaxDiffCenters = 0;
-        MaxDiffBlocks = 0;
-        LowContrastBlocks = 0;
-        match_count = 0;
-        final_multi_point = 0;
-        better_matches = 0;
-        matches_discarded = 0;
-        match_used = 0;
+    ifstream VertFile("./vertshift.txt");
+    // check stream status
+    if (VertFile&&!ignorVertFile){
+        if(verbose)cout << "Got vertical shift setting from pre-calculated file.\n";
+        string line;
+        getline(VertFile,line);
+        Vert_Pix_Align=stoi(line);
+        VertFile.close();
     }
+    else {
+        if(verbose){
+            if(!ignorVertFile)cout << "Can't open vertical shift settings file. Making new one. \n";
+            else cout << "Ignoring vertical alignment file per request. \n";
+            cout << "Doing Automatic Vertical Alignment. Up to +-" << Vert_Pix_Test << " pixels. \n";
+        }
+        int y = height / 2;
+        int maxPointMatches = 0;
+        int bestShift = 0;
+        for(int ShiftTest=-Vert_Pix_Test;ShiftTest<Vert_Pix_Test;ShiftTest++){
+            int RightY = y + ShiftTest;
+            int thNum = 0;
+            ///Test 12 lines at the same time.
+            thread NewThread1 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread2 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread3 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread4 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread5 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread6 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread7 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread8 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread9 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread10 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread11 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+            thread NewThread12 (&C_threadCalc::slpm, O_CPU_Thread_Calc[thNum], std::ref(Pix_LeftCam_Start), std::ref(width), std::ref(height), std::ref(Xsq_wdth), std::ref(maxTD), std::ref(Pix_Start), std::ref(Pix_End), std::ref(y), std::ref(RightY), std::ref(O_Points), std::ref(thNum)); thNum++;
+
+            NewThread1.join();
+            NewThread2.join();
+            NewThread3.join();
+            NewThread4.join();
+            NewThread5.join();
+            NewThread6.join();
+            NewThread7.join();
+            NewThread8.join();
+            NewThread9.join();
+            NewThread10.join();
+            NewThread11.join();
+            NewThread12.join();
+
+            if(match_count>maxPointMatches){
+                Vert_Pix_Align = ShiftTest;
+                maxPointMatches = match_count;
+            }
+            ///Reset everything.
+            T_Edge_Cnt = 0;
+            MaxDiffCenters = 0;
+            MaxDiffBlocks = 0;
+            LowContrastBlocks = 0;
+            match_count = 0;
+            final_multi_point = 0;
+            better_matches = 0;
+            matches_discarded = 0;
+            match_used = 0;
+        }
+        ofstream VertFile;
+        VertFile.open ("./vertshift.txt");
+        VertFile << Vert_Pix_Align;
+        VertFile.close();
+      }
   }
+  if(verbose){
   cout << "Right image shifted by " << Vert_Pix_Align << " pixels. \n";
   cout << "Doing points matching between channels.\nWorking: ";
   cout.clear(); ///Clear buffer.
   cout << "<          >" << "\b\b\b\b\b\b\b\b\b\b\b" << std::flush;
+  }
   int yLowLimit = Ysq_wdth;
   int yHighLimit = height - Ysq_wdth;
   if(Vert_Pix_Align>0)yHighLimit-=Vert_Pix_Align;
@@ -212,7 +234,7 @@ int main(int argc, char * argv[]) {
      int RightY = y + Vert_Pix_Align;
      if (y >= Completion_Status) {
       Completion_Status += height / 10;
-      cout << "=" << std::flush;
+      if(verbose)cout << "=" << std::flush;
     }
     /// X processing goes here...
     int thNum = 0;
@@ -245,7 +267,7 @@ int main(int argc, char * argv[]) {
 
   }
 
-
+if(verbose){
   cout << "=> Completed!\n";
   cout << "Edges Compared:: " << T_Edge_Cnt << "\n";
   cout << "Out of range center potential matches culled:: " << MaxDiffCenters << "\n";
@@ -257,6 +279,7 @@ int main(int argc, char * argv[]) {
   cout << "Similar Matches Found and Discarded:: " << matches_discarded << "\n";
   cout << "Total point matches found:: " << match_used << "\n";
   cout << "Culling stray points.\n";
+}
   C_Points * O_CulledPoints;
   O_CulledPoints = new C_Points[match_used];
   C_Chroma * O_CulledColors;
@@ -325,11 +348,13 @@ int main(int argc, char * argv[]) {
     lastMatchUsed = match_used;
     totalPasses++;
   }
+  if(verbose){
   cout << "Total Culling Passes:: " << totalPasses << "\n";
   cout << "Noise Points Culled:: " << oldMatch_used - match_used << "\n";
   cout << "Points remaining after distance culling:: " << match_used << "\n";
+  }
   ///Now convert the points to a readable file.
-  cout << "Writing output PLY file. \n";
+  if(verbose)cout << "Writing output PLY file. \n";
   ofstream Pfile;
   Pfile.open(Ofilename);
   Pfile << PLYheader_Start[0] << match_used << "\n";
@@ -347,7 +372,7 @@ int main(int argc, char * argv[]) {
       else Pfile << O_CulledColors[d].chnl[B] << "\n";
     }
   }
-  cout << "Wrote " << Fout_Count << " points to file.\n";
+  if(verbose)cout << "Wrote " << Fout_Count << " points to file.\n";
   if (Fout_Count != match_used) cout << "!-> WARNING. Points written does not match points found. IDK why. <-! \n";
   Pfile.close();
   return 0;
@@ -605,7 +630,7 @@ float argNumber = 0;
   for(int i=1;i<argc;i++){
     if(argv[i][0]=='-'){
         if(argv[i][1]!='L' && argv[i][1]!='R' && argv[i][1]!='A' &&
-           argv[i][1]!='h' && argv[i][1]!='O'){
+           argv[i][1]!='a' && argv[i][1]!='h' && argv[i][1]!='O' && argv[i][1]!='V'){
             std::stringstream wasd(&argv[i][3]);
             wasd >> argNumber;
         }
@@ -625,9 +650,15 @@ float argNumber = 0;
             case 'A':
                 Auto_Vert_Align = false;
                 break;
+            case 'a':
+                ignorVertFile = true;
+                break;
             case 'h':
                 cout << helpText[0];
                 return 1;
+                break;
+            case 'V':
+                verbose = true;
                 break;
             case 'I':
                 if(argNumber>=1&&argNumber<=1000)Cam_Dist=argNumber;
@@ -665,7 +696,7 @@ float argNumber = 0;
     }
   }
   if(gotLFile && gotRFile){
-    cout << "No input filenames given. Using './left.png' and './right.png' \n";
+    if(verbose)cout << "No input filenames given. Using './left.png' and './right.png' \n";
     Lfilename = "./left.png";
     Rfilename = "./right.png";
   }
@@ -678,7 +709,7 @@ float argNumber = 0;
   return 1;
   }
   if(gotOFile){
-    cout << "No output filename given. Using './cloud.ply' \n";
+    if(verbose)cout << "No output filename given. Using './cloud.ply' \n";
     Ofilename = "./cloud.ply";
   }
   return 0;

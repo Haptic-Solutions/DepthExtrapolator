@@ -29,6 +29,8 @@ int MinCullCount = 15; /// Minimum number of nearby points to not cull.
 int TestGrid = 5;       /// Size of Culling test grid. times 2 then add 1
 int CullingPasses = 0; /// Number of passes to make for distance culling. Set to 0 for AUTO.
 int MaxThreads = 8;  ///NOT IMPLEMENTED
+bool verbose = false;
+bool ignorVertFile = false;
 
 ///Distance is in mm.
 ///Angles are in Radians.
@@ -183,9 +185,11 @@ const char *helpText[]{
 "\nImage properties: \n"
 "-S :: Image alignment shift. Overridden by auto-align if enabled. Default: 0 Lines\n"
 "-A :: Disable auto vertical alignment. Default: Enabled\n"
+"-a :: Disable reading of vertical alignment file. Default: Enabled\n"
 "-T :: Auto align test limits. Default: +-20 Lines\n"
 "\nOutput Options: \n"
 "-O :: Points cloud output filename. Default: './cloud.ply'\n"
+"-V :: Verbose mode.\n"
 "\n"
 };
 
