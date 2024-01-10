@@ -48,41 +48,41 @@ double lens_foc = 18; //test parameter. NIKON D3300 with 18-140mm lens.
 double X_Size = 23.5; //23.5test parameter. NIKON D3300 with 18-140mm lens.
 double Y_Size = 15.6; //15.6 test parameter. NIKON D3300 with 18-140mm lens.
 
-unsigned int width, height, Rwidth, Rheight;
-unsigned char * edgeOutLEFT;
-unsigned char * edgeOutRIGHT;
-unsigned char * reduxOutLEFT;
-unsigned char * reduxOutRIGHT;
-unsigned char * reduxMatchLEFT;
-unsigned char * reduxMatchRIGHT;
-unsigned char * pixelTMP;
-double * Sets;
-double * X_Angle;
-double * Y_Angle;
-double dimScale = 0;
-int MaxDiffCenters = 0;
-int MaxDiffBlocks = 0;
-int LowContrastBlocks = 0;
-int Pix_Diff = 0;
-int match_used = 0;
-int better_matches = 0;
-int matches_discarded = 0;
-int match_count = 0;
-int T_Edge_Cnt = 0;
-int final_multi_point = 0;
+unsigned int G_width, G_height, G_Rwidth, G_Rheight;
+unsigned char * G_edgeOutLEFT;
+unsigned char * G_edgeOutRIGHT;
+unsigned char * G_reduxOutLEFT;
+unsigned char * G_reduxOutRIGHT;
+unsigned char * G_reduxMatchLEFT;
+unsigned char * G_reduxMatchRIGHT;
+unsigned char * G_pixelTMP;
+double * G_Sets;
+double * G_X_Angle;
+double * G_Y_Angle;
+double G_dimScale = 0;
+int G_MaxDiffCenters = 0;
+int G_MaxDiffBlocks = 0;
+int G_LowContrastBlocks = 0;
+int G_Pix_Diff = 0;
+int G_match_used = 0;
+int G_better_matches = 0;
+int G_matches_discarded = 0;
+int G_match_count = 0;
+int G_T_Edge_Cnt = 0;
+int G_final_multi_point = 0;
 const char* Lfilename;
 const char* Rfilename;
 const char* Ofilename;
 
-std::vector < unsigned char > Limage;
-std::vector < unsigned char > Rimage;
+std::vector < unsigned char > G_Limage;
+std::vector < unsigned char > G_Rimage;
 
-int GetArgs(int, char **);
-void lineThread();
-unsigned int cordST(unsigned int, unsigned int);
-unsigned int COLOR_cordST(unsigned int, unsigned int, unsigned int);
-double DegToRad(double);
-double RadToDeg(double);
+int G_GetArgs(int, char **);
+void G_lineThread();
+unsigned int G_cordST(unsigned int, unsigned int);
+unsigned int G_COLOR_cordST(unsigned int, unsigned int, unsigned int);
+double G_DegToRad(double);
+double G_RadToDeg(double);
 
 //class C_bMatch {
 //  public:
@@ -120,8 +120,16 @@ class C_threadCalc {
       bool reduxMatch(int, int, int, int);
       unsigned int cord(unsigned int, unsigned int);
       unsigned int COLOR_cord(unsigned int, unsigned int, unsigned int);
+      int* pixScore;
+      int* matchWith;
+      bool* PixSkip;
   public:
       void slpm(int, unsigned int, unsigned int, int, int, int, int, int, int, C_Points *, int);
+  ~C_threadCalc(void){
+    delete[]  pixScore;
+    delete[] matchWith;
+    delete[] PixSkip;
+  }
 };
 
 class C_pTable {
