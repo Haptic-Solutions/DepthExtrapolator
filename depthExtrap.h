@@ -32,7 +32,7 @@ int MaxThreads = 8;  ///NOT IMPLEMENTED
 bool verbose = false;
 bool ignorVertFile = false;
 bool exComp = true;
-int RGBcompensation[3]={0,0,0};
+int G_RGBcompensation[3]={0,0,0};
 
 ///Distance is in mm.
 ///Angles are in Radians.

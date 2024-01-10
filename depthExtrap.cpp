@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
   // FOV = 2 arctan(sensorSize/(2f))
   ///X angle.
   for (int i = 0; i < G_width; i++) {
-    F_i = i; //Convert to floating point number.
+    F_i = static_cast<float>(i); //Convert to floating point number.
     double X_Num = X_Size * ((F_i / F_G_width) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
     double foc_length = sqrt(pow(lens_foc, 2) + pow(X_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
@@ -66,7 +66,7 @@ int main(int argc, char * argv[]) {
   }
   ///Y angle.
   for (int i = 0; i < G_height; i++) {
-    F_i = i; //Convert to floating point number.
+    F_i = static_cast<float>(i); //Convert to floating point number.
     double Y_Num = Y_Size * ((F_i / F_G_height) - 0.5); ///Get scan offset of each pixel with 0 in the middle.
     double foc_length = sqrt(pow(lens_foc, 2) + pow(Y_Num, 2)); ///Get focal length of each pixel correct for spherical lens.
     if (!spherical_Lens) foc_length = lens_foc;
@@ -135,7 +135,7 @@ int main(int argc, char * argv[]) {
   if(verbose){
   cout << "Pix_Start:: " << Pix_Start << " pix\n";
   cout << "Pix_End:: " << Pix_End << " pix\n";
-  cout << "Pix_G_width:: " << G_Pix_Diff << " pix\n";
+  cout << "Pix_width:: " << G_Pix_Diff << " pix\n";
   cout << "Pix_LeftCam_Start:: " << Pix_LeftCam_Start << " pix\n";
   }
   ///Get exposure compensation if enabled.
@@ -143,28 +143,31 @@ int main(int argc, char * argv[]) {
       if(verbose)cout << "Performing exposure compensation.\n";
       double leftRGBaverage[3]={0,0,0};
       double rightRGBaverage[3]={0,0,0};
+      double F_RES = static_cast<double>(G_width*G_height);
       for(int c=0;c<3;c++){
           for(int x=Pix_LeftCam_Start;x<G_width;x++){
             for(int y=0;y<G_height;y++){
-                leftRGBaverage[c] += G_Limage[G_COLOR_cordST(x, y, c)];
+                double pixADD = static_cast<double>(G_Limage[G_COLOR_cordST(x, y, c)]);
+                leftRGBaverage[c] += pixADD;
             }
           }
-          leftRGBaverage[c] /= G_width*G_height;
+          leftRGBaverage[c] /= F_RES;
       }
 
       for(int c=0;c<3;c++){
           for(int x=0;x<G_width-Pix_LeftCam_Start;x++){
             for(int y=0;y<G_height;y++){
-                rightRGBaverage[c] += G_Rimage[G_COLOR_cordST(x, y, c)];
+                double pixADD = static_cast<double>(G_Rimage[G_COLOR_cordST(x, y, c)]);
+                rightRGBaverage[c] += pixADD;
             }
           }
-          rightRGBaverage[c] /= G_width*G_height;
+          rightRGBaverage[c] /= F_RES;
       }
-      for(int c=0;c<3;c++)RGBcompensation[c] = leftRGBaverage[c] - rightRGBaverage[c];
+      for(int c=0;c<3;c++)G_RGBcompensation[c] = static_cast<int>(leftRGBaverage[c]-rightRGBaverage[c]);
       if(verbose){
-          cout << "R comp " << RGBcompensation[R];
-          cout << ", G comp " << RGBcompensation[G];
-          cout << ", B comp " << RGBcompensation[B] << "\n";
+          cout << "R comp " << G_RGBcompensation[R];
+          cout << ", G comp " << G_RGBcompensation[G];
+          cout << ", B comp " << G_RGBcompensation[B] << "\n";
       }
   }
   ///Do edge matching per line using color data to match points between Left and Right views.
@@ -172,9 +175,8 @@ int main(int argc, char * argv[]) {
   O_Points = new C_Points[G_width * G_height];
   int Completion_Status = G_height / 10;
 
-
   int maxTD = (((Xsq_wdth * 2) + 1) * ((Ysq_wdth * 2) + 1)) * maxTotalDiff;
-  double scale_dist = max_Dist / min_Dist;
+  double scale_dist = static_cast<double>(max_Dist / min_Dist);
 
   C_threadCalc * O_CPU_Thread_Calc = new C_threadCalc();
   ///Do vertical shift adjustment.
@@ -353,9 +355,9 @@ int main(int argc, char * argv[]) {
                   O_CulledPoints[f].Cord[X] = Dx;
                   O_CulledPoints[f].Cord[Y] = Dy;
                   O_CulledPoints[f].Cord[Z] = Dz;
-                  O_CulledColors[f].chnl[R] = G_Limage[G_COLOR_cordST(x, y, R)];
-                  O_CulledColors[f].chnl[G] = G_Limage[G_COLOR_cordST(x, y, G)];
-                  O_CulledColors[f].chnl[B] = G_Limage[G_COLOR_cordST(x, y, B)];
+                  O_CulledColors[f].chnl[R] = static_cast<unsigned int>(G_Limage[G_COLOR_cordST(x, y, R)]);
+                  O_CulledColors[f].chnl[G] = static_cast<unsigned int>(G_Limage[G_COLOR_cordST(x, y, G)]);
+                  O_CulledColors[f].chnl[B] = static_cast<unsigned int>(G_Limage[G_COLOR_cordST(x, y, B)]);
                   O_Points[G_cordST(x, y)].PassNum = CPasses + 1; ///Mark PassNum to which pass we are on +1.
                   /// We use this to only check the ones that match the same pass we are on. This
                   /// essentially marks the keepers in 'O_Points'.
@@ -447,8 +449,8 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
 /*   If it can be streamlined, hardware accelerated via GPU or other means, or otherwise replaced with a more efficient algo, it would greatly speed up performance. */
   for (int x=Pix_LeftCam_Start;x<(G_width-Xsq_wdth);x++){
     if (isEdge(x,y)){
-      int PX_Match = 0;
       G_T_Edge_Cnt++;
+      int PX_Match = 0;
       //Found an edge on left viewport, search right viewport to see if a color match is close enough.
       int LLX = x+Pix_Start;
       if (LLX < 0) LLX = 0;
@@ -475,7 +477,7 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
         }
         if (PX_Match == -2) break; ///Break from loop if there isn't enough detail in a block.
       }
-      if (lowest_Diff < maxTD && multi_point < 1 && PX_Match != -2) {
+      if ((lowest_Diff < maxTD) && (multi_point < 1) && (PX_Match != -2)) {
         /// Mark potential matches.
         G_match_count++;
         matchWith[x] = lowest_Tx;
@@ -489,7 +491,7 @@ void C_threadCalc::slpm(int Pix_LeftCam_Start,
     for (int x = 0; x < G_width; x++) {
       int Gx = matchWith[x];
       int Gscore = pixScore[x];
-      for (int xTest = x + 1; xTest < (x + G_Pix_Diff) && xTest < G_width; xTest++) {
+      for (int xTest = x + 1; (xTest<(x+G_Pix_Diff)) && (xTest<G_width); xTest++) {
         ///Find two left pixels that are matching with the same right pixel; find and use the better match.
         int Hx = matchWith[xTest];
         int Hscore = pixScore[xTest];
@@ -538,7 +540,7 @@ int C_threadCalc::gridComp(int x, int Tx, int y, int RightY) {
     for (int Xadj = -Xsq_wdth; Xadj <= Xsq_wdth; Xadj++) {
       /// Test each color channel.
       for (int c = 0; c < 3; c++) {
-        int Diff_Test = G_Limage[COLOR_cord(x+Xadj, y, c)] - G_Rimage[COLOR_cord(Tx+Xadj, RightY, c)];
+        int Diff_Test = static_cast<int>(G_Limage[COLOR_cord(x+Xadj, y, c)] - G_Rimage[COLOR_cord(Tx+Xadj, RightY, c)]);
         if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
@@ -562,12 +564,12 @@ int C_threadCalc::gridComp(int x, int Tx, int y, int RightY) {
     for (int Xadj = -Xsq_wdth; Xadj <= Xsq_wdth; Xadj++) {
       /// Test each color channel.
       for (int c = 0; c < 3; c++) {
-        int LCenterContrast = G_Limage[COLOR_cord(x, y, c)];
-        LCenterContrast -= G_Limage[COLOR_cord(x + Xadj, y + Yadj, c)];
+        int LCenterContrast = static_cast<int>(G_Limage[COLOR_cord(x, y, c)]);
+        LCenterContrast -= static_cast<int>(G_Limage[COLOR_cord(x + Xadj, y + Yadj, c)]);
         if (LCenterContrast < 0) LCenterContrast *= -1;
         if (LCenterContrast > minBKcontrast) LctstCount++;
 
-        int Diff_Test = G_Limage[COLOR_cord(x + Xadj, y + Yadj, c)]-(G_Rimage[COLOR_cord(Tx + Xadj, RightY + Yadj, c)]+RGBcompensation[c]);
+        int Diff_Test = static_cast<int>(G_Limage[COLOR_cord(x + Xadj, y + Yadj, c)])-(static_cast<int>(G_Rimage[COLOR_cord(Tx + Xadj, RightY + Yadj, c)])+G_RGBcompensation[c]);
         if (Diff_Test < 0) Diff_Test *= -1; //Get absolute value of difference.
         ///Cull if center pixel is out of range and skip to next pixel.
         ///Also cull if there isn't enough contrast between center pixel and surrounding pixels.
@@ -633,12 +635,12 @@ bool C_threadCalc::reduxMatch(int x, int Ex, int y, int RightY) {
 
 bool C_threadCalc::isEdge(int x, int y) {
   for (int c = 0; c < 3; c++) {
-    int Etest = G_Limage[COLOR_cord(x, y, c)] - G_Limage[COLOR_cord(x + edgePixDist, y, c)];
+    int Etest = static_cast<int>(G_Limage[COLOR_cord(x, y, c)] - G_Limage[COLOR_cord(x + edgePixDist, y, c)]);
     if (Etest < 0) Etest *= -1;
     if (threashold < Etest) return true;
   }
   for (int c = 0; c < 3; c++) {
-    int Etest = G_Limage[COLOR_cord(x, y, c)] - G_Limage[COLOR_cord(x, y + edgePixDist, c)];
+    int Etest = static_cast<int>(G_Limage[COLOR_cord(x, y, c)] - G_Limage[COLOR_cord(x, y + edgePixDist, c)]);
     if (Etest < 0) Etest *= -1;
     if (threashold < Etest) return true;
   }
