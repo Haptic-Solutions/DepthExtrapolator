@@ -14,11 +14,11 @@
 
 bool spherical_Lens = 0;
 
-int edgePixSkp = 1;     ///Number of pixels to skip after and edge has been found.
-int edgePixDist = 3;    ///Distance to compare pixels for edges.
-int Xsq_wdth = 3; /// Width of block to test. times 2 then add 1
-int Ysq_wdth = 3; /// Height of block to test. times 2 then add 1
-int threashold = 15; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
+int edgePixSkp = 2;     ///Number of pixels to skip after an edge has been found.
+int edgePixDist = 2;    ///Distance to compare pixels for edges.
+int Xsq_wdth = 1; /// Width of block to test. times 2 then add 1
+int Ysq_wdth = 1; /// Height of block to test. times 2 then add 1
+int threashold = 20; /// Edge detect threashold. 0-255 Larger numbers == less sensitive.
 int MaxCenterDiff = 25; /// Max center pixel test difference. 0-255 Smaller numbers == closer match.
 int MaxColorDiff = 30; /// Max pixel test difference per block. 0-255 Smaller numbers == closer match.
 int maxTotalDiff = 40; /// Max overall difference. 0-255 Smaller numbers == closer match.
