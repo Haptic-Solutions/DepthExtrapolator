@@ -161,10 +161,12 @@ int main(int argc, char * argv[]) {
           rightRGBaverage[c] /= width*height;
       }
       for(int c=0;c<3;c++)RGBcompensation[c] = leftRGBaverage[c] - rightRGBaverage[c];
+      if(verbose){
+          cout << "R comp " << RGBcompensation[R];
+          cout << ", G comp " << RGBcompensation[G];
+          cout << ", B comp " << RGBcompensation[B] << "\n";
+      }
   }
-  cout << "R comp " << RGBcompensation[R];
-  cout << ", G comp " << RGBcompensation[G];
-  cout << ", B comp " << RGBcompensation[B] << "\n";
   ///Do edge matching per line using color data to match points between Left and Right views.
   C_Points * O_Points;
   O_Points = new C_Points[width * height];
